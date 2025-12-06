@@ -1,35 +1,43 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { X } from 'lucide-react';
 import { serverTimestamp } from 'firebase/firestore';
 import { PLATFORMS, TAGS } from '../constants';
+import type { Problem } from '../types';
 
 interface AddProblemSheetProps {
   isOpen: boolean;
   onClose: () => void;
-  onAdd: (problem: any) => void;
+  onAdd: (problemData: Omit<Problem, 'id'>) => void;
 }
 
-export const AddProblemSheet: React.FC<AddProblemSheetProps> = ({ isOpen, onClose, onAdd }) => {
+export const AddProblemSheet = ({ isOpen, onClose, onAdd }: AddProblemSheetProps) => {
   const [url, setUrl] = useState('');
   const [isParsing, setIsParsing] = useState(false);
-  const [form, setForm] = useState({
+  type ProblemForm = {
+    title: string;
+    platform: string;
+    difficulty: string;
+    tags: string[];
+    assignees: string[];
+    url?: string;
+  };
+
+  const [form, setForm] = useState<ProblemForm>({
     title: '',
     platform: 'Codeforces',
     difficulty: 'Easy',
-    tags: [] as string[],
-    assignees: ['1'] // Default to current user
+    tags: [],
+    assignees: ['1']
   });
 
-  // Simulated auto-parsing
-  const handleUrlPaste = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleUrlPaste = (e: React.ChangeEvent<HTMLInputElement>): void => {
     const val = e.target.value;
     setUrl(val);
     if (val.length > 5) {
       setIsParsing(true);
-      // Simulate API delay
       setTimeout(() => {
-        let detectedPlatform = 'Other';
-        let detectedTitle = '';
+        let detectedPlatform: string = 'Other';
+        let detectedTitle: string = '';
         
         if (val.includes('codeforces')) {
             detectedPlatform = 'Codeforces';
@@ -42,7 +50,7 @@ export const AddProblemSheet: React.FC<AddProblemSheetProps> = ({ isOpen, onClos
             detectedTitle = 'ABC 321 - D';
         }
 
-        setForm(prev => ({
+        setForm((prev: typeof form) => ({
           ...prev,
           platform: detectedPlatform,
           title: detectedTitle || prev.title,
@@ -53,12 +61,16 @@ export const AddProblemSheet: React.FC<AddProblemSheetProps> = ({ isOpen, onClos
     }
   };
 
-  const toggleTag = (tagName: string) => {
-    setForm(prev => ({
+  interface ToggleTagFn {
+    (tagName: string): void;
+  }
+
+  const toggleTag: ToggleTagFn = (tagName) => {
+    setForm((prev) => ({
       ...prev,
-      tags: prev.tags.includes(tagName) 
-        ? prev.tags.filter(t => t !== tagName)
-        : [...prev.tags, tagName]
+      tags: prev.tags.includes(tagName)
+        ? prev.tags.filter((t) => t !== tagName)
+        : [...prev.tags, tagName],
     }));
   };
 

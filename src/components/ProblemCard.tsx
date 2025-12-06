@@ -1,37 +1,39 @@
-import React from 'react';
-import { 
-  CheckCircle2, 
-  Clock, 
-  Circle, 
-  Users,
-  ExternalLink,
-  Trash2
-} from 'lucide-react';
-import { PLATFORMS, TEAM_MEMBERS } from '../constants';
+import { ExternalLink, Trash2 } from 'lucide-react';
+import { PLATFORMS, BALLOON_COLORS, TEAM_MEMBERS } from '../constants';
+import { Balloon } from './Balloon';
+import type { Problem } from '../types';
 
 interface ProblemCardProps {
-  problem: any;
-  onUpdateStatus: (id: string, newStatus: string) => void;
+  problem: Problem;
+  onUpdateStatus: (id: string, status: string) => void;
   onDelete: (id: string) => void;
 }
 
-export const ProblemCard: React.FC<ProblemCardProps> = ({ problem, onUpdateStatus, onDelete }) => {
+export const ProblemCard = ({ problem, onUpdateStatus, onDelete }: ProblemCardProps) => {
   const platformStyle = PLATFORMS.find(p => p.name === problem.platform) || PLATFORMS[3];
   
-  const statusConfig: any = {
-    'Todo': { icon: Circle, color: 'text-gray-400', next: 'InProgress' },
-    'InProgress': { icon: Clock, color: 'text-amber-500', next: 'Review' },
-    'Review': { icon: Users, color: 'text-blue-500', next: 'Done' },
-    'Done': { icon: CheckCircle2, color: 'text-green-500', next: 'Todo' }
+  // Mapping statuses to ICPC/OJ verdicts
+  const statusConfig: Record<string, { label: string; color: string; next: string; bg: string }> = {
+    'Todo': { label: 'New', color: 'text-gray-400', next: 'InProgress', bg: 'bg-gray-100' },
+    'InProgress': { label: 'Running', color: 'text-amber-500', next: 'Review', bg: 'bg-amber-50' },
+    'Review': { label: 'Testing', color: 'text-blue-500', next: 'Done', bg: 'bg-blue-50' },
+    'Done': { label: 'AC', color: 'text-green-600', next: 'Todo', bg: 'bg-green-100' }
   };
 
   const currentStatus = statusConfig[problem.status] || statusConfig['Todo'];
-  const StatusIcon = currentStatus.icon;
+  const balloonColor = BALLOON_COLORS[problem.difficulty as keyof typeof BALLOON_COLORS] || '#999';
 
   return (
-    <div className="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 mb-3 animate-in fade-in slide-in-from-bottom-2 duration-300">
+    <div className="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 mb-3 relative overflow-hidden transition-all hover:shadow-md">
+      {/* Balloon for AC problems */}
+      {problem.status === 'Done' && (
+        <div className="absolute top-0 right-12 animate-in slide-in-from-top-4 duration-500">
+          <Balloon color={balloonColor} size={32} />
+        </div>
+      )}
+
       <div className="flex justify-between items-start mb-2">
-        <div className="flex-1">
+        <div className="flex-1 pr-12">
           <div className="flex items-center gap-2 mb-1 flex-wrap">
             <span className={`text-[10px] px-2 py-0.5 rounded-md font-bold ${platformStyle.color}`}>
               {problem.platform}
@@ -51,11 +53,12 @@ export const ProblemCard: React.FC<ProblemCardProps> = ({ problem, onUpdateStatu
           </div>
           <h3 className="font-semibold text-gray-900 leading-tight">{problem.title}</h3>
         </div>
+        
         <button 
           onClick={() => onUpdateStatus(problem.id, currentStatus.next)}
-          className={`p-2 rounded-full hover:bg-gray-50 transition-colors ${currentStatus.color}`}
+          className={`flex flex-col items-center justify-center w-10 h-10 rounded-xl transition-all font-bold text-xs ${currentStatus.bg} ${currentStatus.color}`}
         >
-          <StatusIcon size={20} />
+          {currentStatus.label}
         </button>
       </div>
 

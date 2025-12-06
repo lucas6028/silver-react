@@ -29,11 +29,25 @@ export const TAGS = [
 ];
 
 export const TEAM_MEMBERS = [
-  { id: '1', name: 'You', avatar: 'bg-blue-500', role: 'Captain', solved: 142, streak: 12, status: 'Online' },
-  { id: '2', name: 'Alice', avatar: 'bg-emerald-500', role: 'Member', solved: 89, streak: 5, status: '2m ago' },
-  { id: '3', name: 'Bob', avatar: 'bg-indigo-500', role: 'Member', solved: 64, streak: 0, status: '1h ago' },
-  { id: '4', name: 'Charlie', avatar: 'bg-amber-500', role: 'Member', solved: 112, streak: 3, status: 'Online' }
+  { id: '1', name: 'You', avatar: 'bg-blue-500', role: 'Captain', solved: 142, penalty: 1240, status: 'Online' },
+  { id: '2', name: 'Alice', avatar: 'bg-emerald-500', role: 'Coder', solved: 89, penalty: 980, status: '2m ago' },
+  { id: '3', name: 'Bob', avatar: 'bg-indigo-500', role: 'Math', solved: 64, penalty: 1500, status: '1h ago' },
+  { id: '4', name: 'Charlie', avatar: 'bg-amber-500', role: 'Tester', solved: 112, penalty: 1100, status: 'Online' }
 ];
+
+export const UPCOMING_CONTESTS = [
+  { id: 1, name: 'Codeforces Round 992 (Div. 2)', time: '2h 30m', platform: 'Codeforces' },
+  { id: 2, name: 'AtCoder Beginner Contest 334', time: '1d 4h', platform: 'AtCoder' }
+];
+
+export const BALLOON_COLORS = {
+  'Easy': '#4CAF50',   // Green
+  'Medium': '#2196F3', // Blue
+  'Hard': '#F44336',   // Red
+  'Math': '#FFC107',   // Yellow
+  'DP': '#9C27B0',     // Purple
+  'Graph': '#FF5722',  // Orange
+};
 
 export const MOCK_PROBLEMS = [
   {
