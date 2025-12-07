@@ -49,6 +49,21 @@ export const BALLOON_COLORS = {
   'Graph': '#FF5722',  // Orange
 };
 
+export const ALL_BALLOON_COLORS = [
+  '#4CAF50', // Green
+  '#2196F3', // Blue
+  '#F44336', // Red
+  '#FFC107', // Yellow
+  '#9C27B0', // Purple
+  '#FF5722', // Orange
+  '#E91E63', // Pink
+  '#00BCD4', // Cyan
+  '#FF9800', // Orange
+  '#8BC34A', // Light Green
+  '#3F51B5', // Indigo
+  '#795548', // Brown
+];
+
 export const MOCK_PROBLEMS = [
   {
     id: 'mock-1',

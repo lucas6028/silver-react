@@ -1,5 +1,3 @@
-import React from 'react';
-
 export const Balloon = ({ color, size = 24, className = "" }: { color: string; size?: number; className?: string }) => (
   <svg width={size} height={size * 1.3} viewBox="0 0 24 32" fill="none" className={`drop-shadow-sm ${className}`}>
     {/* String */}

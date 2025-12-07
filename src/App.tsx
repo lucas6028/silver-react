@@ -34,7 +34,8 @@ import {
   TEAM_MEMBERS, 
   UPCOMING_CONTESTS, 
   BALLOON_COLORS, 
-  MOCK_PROBLEMS 
+  MOCK_PROBLEMS,
+  ALL_BALLOON_COLORS
 } from './constants';
 
 import { Balloon } from './components/Balloon';
@@ -44,6 +45,8 @@ import { ProblemCard } from './components/ProblemCard';
 import { AddProblemSheet } from './components/AddProblemSheet';
 import { SignInModal } from './components/SignInModal';
 import { UserMenu } from './components/UserMenu';
+import { FlyingBalloons } from './components/FlyingBalloons';
+import type { FlyingBalloon } from './components/FlyingBalloons';
 import type { Problem } from './types';
 
 export default function Silver() {
@@ -53,6 +56,17 @@ export default function Silver() {
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [isSignInOpen, setIsSignInOpen] = useState(false);
   const [filter, setFilter] = useState('All');
+  const [flyingBalloons, setFlyingBalloons] = useState<FlyingBalloon[]>([]);
+
+  const chooseColorForProblem = (seed: string) => {
+    let hash = 0;
+    for (let i = 0; i < seed.length; i++) {
+      hash = ((hash << 5) - hash) + seed.charCodeAt(i);
+      hash |= 0;
+    }
+    const idx = Math.abs(hash) % ALL_BALLOON_COLORS.length;
+    return ALL_BALLOON_COLORS[idx];
+  };
 
   // --- Auth & Data Sync ---
   useEffect(() => {
@@ -106,16 +120,43 @@ export default function Silver() {
   }
 
   const handleUpdateStatus: UpdateStatusFn = async (id, newStatus) => {
+    // Prepare update payload
+    const updateData: Partial<Problem> = { status: newStatus };
+    if (newStatus === 'Done') {
+      const chosenColor = chooseColorForProblem(id);
+      updateData.balloonColor = chosenColor;
+    }
+
+    // Optimistic UI update and immediate celebration
+    setProblems(prev => prev.map(p => p.id === id ? { ...p, ...updateData } : p));
+    if (newStatus === 'Done' && updateData.balloonColor) {
+      spawnFlyingBalloons(updateData.balloonColor as string);
+    }
+
     if (id.startsWith('mock-')) {
-      setProblems(prev => prev.map(p => p.id === id ? { ...p, status: newStatus } : p));
       return;
     }
     if (!user) return;
     try {
-      await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'problems', id), {
-        status: newStatus
-      });
+      await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'problems', id), updateData);
     } catch (e) { console.error(e); }
+  };
+
+  const spawnFlyingBalloons = (color: string, amount = 4) => {
+    const now = Date.now();
+    const newBalloons: FlyingBalloon[] = Array.from({ length: amount }).map((_, idx) => ({
+      id: `${now}-${Math.round(Math.random()*1e6)}-${idx}`,
+      color,
+      left: Math.random() * 80 + 10,
+      size: 28 + Math.random() * 24,
+      duration: 4 + Math.random() * 3,
+      delay: Math.random()*0.6
+    }));
+    setFlyingBalloons(prev => [...prev, ...newBalloons]);
+  };
+
+  const handleFlyingBalloonComplete = (id: string) => {
+    setFlyingBalloons(prev => prev.filter(b => b.id !== id));
   };
 
   const handleDelete = async (id: string): Promise<void> => {
@@ -238,7 +279,7 @@ export default function Silver() {
           <div className="flex gap-2 overflow-x-auto pb-2 no-scrollbar">
             {problems.filter(p => p.status === 'Done').map((p, idx) => (
                <div key={idx} className="flex flex-col items-center gap-1 min-w-[50px]">
-                 <Balloon color={BALLOON_COLORS[p.difficulty as keyof typeof BALLOON_COLORS] || '#4CAF50'} size={32} />
+                 <Balloon color={p.balloonColor || BALLOON_COLORS[p.difficulty as keyof typeof BALLOON_COLORS] || '#4CAF50'} size={32} />
                  <span className="text-[9px] text-gray-400 font-mono truncate w-full text-center">{p.platform[0]}</span>
                </div>
             ))}
@@ -299,6 +340,7 @@ export default function Silver() {
                 Sign In
               </button>
             )}
+            {/* dev button removed */}
           </div>
         </header>
 
@@ -434,6 +476,7 @@ export default function Silver() {
           onGoogleSignIn={handleGoogleSignIn}
           onGithubSignIn={handleGithubSignIn}
         />
+        <FlyingBalloons balloons={flyingBalloons} onComplete={handleFlyingBalloonComplete} />
         
       </div>
     </div>
