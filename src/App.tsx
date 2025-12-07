@@ -30,11 +30,12 @@ import {
   serverTimestamp,
   arrayUnion,
   query,
-  where
+  where,
+  setDoc,
+  getDocs
 } from 'firebase/firestore';
 
 import { 
-  TEAM_MEMBERS, 
   UPCOMING_CONTESTS, 
   BALLOON_COLORS, 
   ALL_BALLOON_COLORS
@@ -48,15 +49,18 @@ import { AddProblemSheet } from './components/AddProblemSheet';
 import { SignInModal } from './components/SignInModal';
 import { UserMenu } from './components/UserMenu';
 import { FlyingBalloons } from './components/FlyingBalloons';
+import { TeamModal } from './components/TeamModal';
 import type { FlyingBalloon } from './components/FlyingBalloons';
-import type { Problem } from './types';
-
+import type { Problem, Team, UserProfile, TeamMember } from './types';
 export default function Silver() {
   const [user, setUser] = useState<User | null>(null);
+  const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
+  const [team, setTeam] = useState<Team | null>(null);
   const [view, setView] = useState('problems');
   const [problems, setProblems] = useState<Problem[]>([]);
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [isSignInOpen, setIsSignInOpen] = useState(false);
+  const [isTeamModalOpen, setIsTeamModalOpen] = useState(false);
   const [filter, setFilter] = useState('All');
   const [flyingBalloons, setFlyingBalloons] = useState<FlyingBalloon[]>([]);
 
@@ -76,9 +80,74 @@ export default function Silver() {
       setUser(currentUser);
       if (!currentUser) {
         setIsSignInOpen(true);
+        setUserProfile(null);
+        setTeam(null);
       }
     });
   }, []);
+
+  // Sync user profile
+  useEffect(() => {
+    if (!user) return;
+
+    const userDocRef = doc(db, 'artifacts', appId, 'public', 'data', 'users', user.uid);
+    
+    const unsubscribe = onSnapshot(userDocRef, async (docSnap) => {
+      if (docSnap.exists()) {
+        const profile = { uid: user.uid, ...docSnap.data() } as UserProfile;
+        setUserProfile(profile);
+      } else {
+        // Create user profile if it doesn't exist
+        const newProfile: Omit<UserProfile, 'uid'> = {
+          displayName: user.displayName || 'Anonymous',
+          email: user.email || '',
+          photoURL: user.photoURL || undefined,
+        };
+        try {
+          await setDoc(userDocRef, newProfile);
+          setUserProfile({ uid: user.uid, ...newProfile });
+        } catch (error) {
+          console.error('Error creating user profile:', error);
+          // Fallback: set profile without saving to Firestore
+          setUserProfile({ uid: user.uid, ...newProfile });
+        }
+      }
+    }, (error) => {
+      console.error("Error syncing user profile:", error);
+      // Fallback: create a local-only profile
+      const fallbackProfile: UserProfile = {
+        uid: user.uid,
+        displayName: user.displayName || 'Anonymous',
+        email: user.email || '',
+        photoURL: user.photoURL || undefined,
+      };
+      setUserProfile(fallbackProfile);
+    });
+
+    return () => unsubscribe();
+  }, [user]);
+
+  // Sync team data
+  useEffect(() => {
+    if (!userProfile?.teamId) {
+      return;
+    }
+
+    const teamDocRef = doc(db, 'artifacts', appId, 'public', 'data', 'teams', userProfile.teamId);
+    
+    const unsubscribe = onSnapshot(teamDocRef, (docSnap) => {
+      if (docSnap.exists()) {
+        setTeam({ id: docSnap.id, ...docSnap.data() } as Team);
+      } else {
+        setTeam(null);
+      }
+    });
+
+    return () => {
+      unsubscribe();
+      setTeam(null);
+    };
+  }, [userProfile?.teamId]);
 
   useEffect(() => {
     if (!user) return;
@@ -241,6 +310,121 @@ export default function Silver() {
 
   const handleSignOut = async () => {
     await signOut(auth);
+  };
+
+  // --- Team Management ---
+  const generateTeamCode = () => {
+    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // Exclude confusing characters
+    let code = '';
+    for (let i = 0; i < 6; i++) {
+      code += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    return code;
+  };
+
+  const handleCreateTeam = async (teamName: string) => {
+    if (!user || !userProfile) throw new Error('You must be signed in to create a team');
+    if (userProfile.teamId) throw new Error('You are already in a team');
+
+    const teamCode = generateTeamCode();
+    const now = Date.now();
+    
+    const teamMember: TeamMember = {
+      uid: user.uid,
+      displayName: user.displayName || 'Anonymous',
+      email: user.email || '',
+      photoURL: user.photoURL || undefined,
+      joinedAt: now,
+      role: 'Captain'
+    };
+
+    const newTeam = {
+      name: teamName,
+      code: teamCode,
+      members: [teamMember],
+      createdAt: serverTimestamp(),
+      createdBy: user.uid
+    };
+
+    try {
+      const teamRef = await addDoc(
+        collection(db, 'artifacts', appId, 'public', 'data', 'teams'),
+        newTeam
+      );
+
+      // Update user profile with team ID
+      await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'users', user.uid), {
+        teamId: teamRef.id
+      });
+    } catch (error) {
+      console.error('Error creating team:', error);
+      throw new Error('Failed to create team. Please check your Firebase security rules.');
+    }
+  };
+
+  const handleJoinTeam = async (teamCode: string) => {
+    if (!user || !userProfile) throw new Error('You must be signed in to join a team');
+    if (userProfile.teamId) throw new Error('You are already in a team. Leave your current team first.');
+
+    // Find team by code
+    const teamsRef = collection(db, 'artifacts', appId, 'public', 'data', 'teams');
+    const q = query(teamsRef, where('code', '==', teamCode));
+    const snapshot = await getDocs(q);
+
+    if (snapshot.empty) {
+      throw new Error('Team not found. Please check the code and try again.');
+    }
+
+    const teamDoc = snapshot.docs[0];
+    const teamData = teamDoc.data() as Team;
+
+    // Check if user is already a member
+    if (teamData.members.some(m => m.uid === user.uid)) {
+      throw new Error('You are already a member of this team');
+    }
+
+    const now = Date.now();
+    const teamMember: TeamMember = {
+      uid: user.uid,
+      displayName: user.displayName || 'Anonymous',
+      email: user.email || '',
+      photoURL: user.photoURL || undefined,
+      joinedAt: now,
+      role: 'Member'
+    };
+
+    // Add user to team members
+    await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'teams', teamDoc.id), {
+      members: arrayUnion(teamMember)
+    });
+
+    // Update user profile with team ID
+    await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'users', user.uid), {
+      teamId: teamDoc.id
+    });
+  };
+
+  const handleLeaveTeam = async () => {
+    if (!user || !userProfile || !team) return;
+
+    if (confirm('Are you sure you want to leave this team?')) {
+      // Remove user from team members
+      const updatedMembers = team.members.filter(m => m.uid !== user.uid);
+      
+      if (updatedMembers.length === 0) {
+        // Delete team if no members left
+        await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'teams', team.id));
+      } else {
+        await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'teams', team.id), {
+          members: updatedMembers
+        });
+      }
+
+      // Remove team ID from user profile
+      await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'users', user.uid), {
+        teamId: null
+      });
+    }
   };
 
   // --- Derived State ---
@@ -427,50 +611,113 @@ export default function Silver() {
 
           {view === 'team' && (
             <div className="space-y-4 animate-in fade-in">
-              <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-                 <div className="p-4 bg-gray-50 border-b border-gray-100 flex justify-between items-center">
-                   <h3 className="font-bold text-gray-900 flex items-center gap-2">
-                     <Trophy size={18} className="text-amber-500" />
-                     Scoreboard
-                   </h3>
-                   <span className="text-[10px] font-mono bg-gray-200 px-2 py-1 rounded text-gray-600">FROZEN</span>
-                 </div>
-                 
-                 <div className="divide-y divide-gray-50">
-                   {TEAM_MEMBERS.sort((a,b) => b.solved - a.solved).map((member, idx) => (
-                     <div key={member.id} className="p-4 flex items-center justify-between">
-                       <div className="flex items-center gap-4">
-                         <div className={`w-6 h-6 flex items-center justify-center rounded text-xs font-bold ${
-                           idx === 0 ? 'bg-yellow-400 text-white shadow-md shadow-yellow-200' : 'bg-gray-100 text-gray-500'
-                         }`}>
-                           {idx + 1}
-                         </div>
-                         <div>
-                           <div className="font-bold text-sm text-gray-900">{member.name}</div>
-                           <div className="text-[10px] text-gray-400">{member.role}</div>
-                         </div>
-                       </div>
-                       
-                       <div className="text-right">
-                         <div className="font-bold text-blue-600 text-sm">{member.solved} <span className="text-[10px] text-gray-400 font-normal">AC</span></div>
-                         <div className="text-[10px] text-gray-400 font-mono">{member.penalty} min</div>
-                       </div>
-                     </div>
-                   ))}
-                 </div>
-              </div>
+              {!team ? (
+                // No team - show create/join options
+                <div className="space-y-4">
+                  <div className="bg-white rounded-2xl p-6 text-center">
+                    <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                      <Users size={32} className="text-blue-600" />
+                    </div>
+                    <h3 className="text-lg font-bold text-gray-900 mb-2">No Team Yet</h3>
+                    <p className="text-sm text-gray-500 mb-6">
+                      Create a team or join an existing one to collaborate with others
+                    </p>
+                    <button
+                      onClick={() => setIsTeamModalOpen(true)}
+                      className="w-full bg-blue-600 text-white py-3 rounded-xl font-medium hover:bg-blue-700 transition-colors"
+                    >
+                      Create or Join Team
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                // Has team - show team info
+                <>
+                  <div className="bg-gradient-to-br from-blue-500 to-blue-600 rounded-2xl p-5 text-white shadow-lg">
+                    <div className="flex justify-between items-start mb-4">
+                      <div>
+                        <h2 className="text-2xl font-bold mb-1">{team.name}</h2>
+                        <div className="flex items-center gap-2 text-blue-100">
+                          <Users size={14} />
+                          <span className="text-sm">{team.members.length} member{team.members.length !== 1 ? 's' : ''}</span>
+                        </div>
+                      </div>
+                      <button
+                        onClick={handleLeaveTeam}
+                        className="text-xs bg-white/20 hover:bg-white/30 px-3 py-1.5 rounded-lg transition-colors"
+                      >
+                        Leave
+                      </button>
+                    </div>
+                    <div className="bg-white/20 rounded-xl p-3 backdrop-blur-sm">
+                      <div className="text-xs text-blue-100 mb-1">Team Code</div>
+                      <div className="font-mono text-2xl font-bold tracking-widest">{team.code}</div>
+                      <div className="text-xs text-blue-100 mt-1">Share this code with others to invite them</div>
+                    </div>
+                  </div>
 
-              <div className="bg-blue-50 border border-blue-100 rounded-2xl p-4">
-                 <h4 className="font-bold text-blue-900 text-sm mb-2">Team Statistics</h4>
-                 <div className="flex justify-between text-xs text-blue-800 mb-1">
-                   <span>Rank (World)</span>
-                   <span className="font-mono font-bold">#421</span>
-                 </div>
-                 <div className="flex justify-between text-xs text-blue-800">
-                   <span>Rank (Region)</span>
-                   <span className="font-mono font-bold">#12</span>
-                 </div>
-              </div>
+                  <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+                    <div className="p-4 bg-gray-50 border-b border-gray-100 flex justify-between items-center">
+                      <h3 className="font-bold text-gray-900 flex items-center gap-2">
+                        <Trophy size={18} className="text-amber-500" />
+                        Team Members
+                      </h3>
+                    </div>
+                    
+                    <div className="divide-y divide-gray-50">
+                      {team.members.map((member) => {
+                        const memberProblems = problems.filter(p => p.assignees?.includes(member.uid));
+                        const solved = memberProblems.filter(p => p.status === 'Done').length;
+                        const total = memberProblems.length;
+                        
+                        return (
+                          <div key={member.uid} className="p-4 flex items-center justify-between">
+                            <div className="flex items-center gap-3">
+                              <div className="w-10 h-10 rounded-full overflow-hidden bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center text-white font-bold">
+                                {member.photoURL ? (
+                                  <img src={member.photoURL} alt={member.displayName} className="w-full h-full object-cover" />
+                                ) : (
+                                  <span>{member.displayName[0]?.toUpperCase()}</span>
+                                )}
+                              </div>
+                              <div>
+                                <div className="font-bold text-sm text-gray-900 flex items-center gap-2">
+                                  {member.displayName}
+                                  {member.uid === user?.uid && (
+                                    <span className="text-[9px] bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded">You</span>
+                                  )}
+                                </div>
+                                <div className="text-[10px] text-gray-400">{member.role || 'Member'}</div>
+                              </div>
+                            </div>
+                            
+                            <div className="text-right">
+                              <div className="font-bold text-blue-600 text-sm">
+                                {solved}/{total} <span className="text-[10px] text-gray-400 font-normal">AC</span>
+                              </div>
+                              <div className="text-[10px] text-gray-400">
+                                {total > 0 ? Math.round((solved / total) * 100) : 0}%
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  <div className="bg-blue-50 border border-blue-100 rounded-2xl p-4">
+                    <h4 className="font-bold text-blue-900 text-sm mb-2">Team Statistics</h4>
+                    <div className="flex justify-between text-xs text-blue-800 mb-1">
+                      <span>Total Problems</span>
+                      <span className="font-mono font-bold">{problems.length}</span>
+                    </div>
+                    <div className="flex justify-between text-xs text-blue-800">
+                      <span>Solved</span>
+                      <span className="font-mono font-bold">{problems.filter(p => p.status === 'Done').length}</span>
+                    </div>
+                  </div>
+                </>
+              )}
             </div>
           )}
         </main>
@@ -526,6 +773,14 @@ export default function Silver() {
           onGoogleSignIn={handleGoogleSignIn}
           onGithubSignIn={handleGithubSignIn}
         />
+
+        <TeamModal
+          isOpen={isTeamModalOpen}
+          onClose={() => setIsTeamModalOpen(false)}
+          onCreateTeam={handleCreateTeam}
+          onJoinTeam={handleJoinTeam}
+        />
+        
         <FlyingBalloons balloons={flyingBalloons} onComplete={handleFlyingBalloonComplete} />
         
       </div>
