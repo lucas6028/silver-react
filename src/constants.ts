@@ -26,6 +26,11 @@ export const TAGS = [
   { name: 'Math', color: 'bg-orange-100 text-orange-700' },
   { name: 'Impl', color: 'bg-gray-100 text-gray-700' },
   { name: 'Strings', color: 'bg-pink-100 text-pink-700' }
+  ,{ name: 'Binary Search', color: 'bg-indigo-100 text-indigo-700' },
+  { name: 'Interactive', color: 'bg-teal-100 text-teal-700' },
+  { name: 'Bitmasks', color: 'bg-cyan-100 text-cyan-700' },
+  { name: 'Constructive', color: 'bg-amber-100 text-amber-700' },
+  { name: 'Geometry', color: 'bg-lime-100 text-lime-700' }
 ];
 
 export const TEAM_MEMBERS = [
@@ -47,6 +52,11 @@ export const BALLOON_COLORS = {
   'Math': '#FFC107',   // Yellow
   'DP': '#9C27B0',     // Purple
   'Graph': '#FF5722',  // Orange
+  'Binary Search': '#3F51B5', // Indigo
+  'Interactive': '#00BCD4', // Cyan
+  'Bitmasks': '#00BFA5', // Teal
+  'Constructive': '#FF9800', // Orange
+  'Geometry': '#8BC34A', // Lime
 };
 
 export const ALL_BALLOON_COLORS = [
@@ -62,6 +72,11 @@ export const ALL_BALLOON_COLORS = [
   '#8BC34A', // Light Green
   '#3F51B5', // Indigo
   '#795548', // Brown
+  '#3F51B5', // Indigo (Binary Search)
+  '#00BCD4', // Cyan (Interactive)
+  '#00BFA5', // Teal (Bitmasks)
+  '#FF9800', // Orange (Constructive)
+  '#8BC34A', // Lime (Geometry)
 ];
 
 export const MOCK_PROBLEMS: never[] = [];

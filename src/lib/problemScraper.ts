@@ -73,6 +73,15 @@ export async function scrapeLeetCodeProblem(url: string): Promise<ScrapedProblem
       'math': 'Math',
       'string': 'Strings',
       'implementation': 'Impl',
+      'binary-search': 'Binary Search',
+      'binary search': 'Binary Search',
+      'interactive': 'Interactive',
+      'interactive-problems': 'Interactive',
+      'bitmask': 'Bitmasks',
+      'bit-manipulation': 'Bitmasks',
+      'constructive': 'Constructive',
+      'constructive-algorithms': 'Constructive',
+      'geometry': 'Geometry'
     };
 
     const tags: string[] = question.topicTags
@@ -175,6 +184,15 @@ export async function scrapeCodeforcesProblem(url: string): Promise<ScrapedProbl
       'math': 'Math',
       'implementation': 'Impl',
       'strings': 'Strings',
+      'binary search': 'Binary Search',
+      'binary_search': 'Binary Search',
+      'interactive': 'Interactive',
+      'bitmasks': 'Bitmasks',
+      'bitmask': 'Bitmasks',
+      'constructive algorithms': 'Constructive',
+      'constructive_algorithms': 'Constructive',
+      'constructive': 'Constructive',
+      'geometry': 'Geometry'
     };
 
     const tags: string[] = problem.tags
