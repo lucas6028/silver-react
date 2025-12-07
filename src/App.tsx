@@ -13,8 +13,11 @@ import {
 } from 'lucide-react';
 import { auth, db, appId } from './lib/firebase';
 import { 
-  signInAnonymously, 
-  onAuthStateChanged
+  onAuthStateChanged,
+  signInWithPopup,
+  GoogleAuthProvider,
+  GithubAuthProvider,
+  signOut
 } from 'firebase/auth';
 import type { User } from 'firebase/auth';
 import { 
@@ -39,6 +42,8 @@ import { ProgressBar } from './components/ProgressBar';
 import { Chip } from './components/Chip';
 import { ProblemCard } from './components/ProblemCard';
 import { AddProblemSheet } from './components/AddProblemSheet';
+import { SignInModal } from './components/SignInModal';
+import { UserMenu } from './components/UserMenu';
 import type { Problem } from './types';
 
 export default function Silver() {
@@ -46,16 +51,17 @@ export default function Silver() {
   const [view, setView] = useState('problems');
   const [problems, setProblems] = useState<Problem[]>([]);
   const [isAddOpen, setIsAddOpen] = useState(false);
+  const [isSignInOpen, setIsSignInOpen] = useState(false);
   const [filter, setFilter] = useState('All');
 
   // --- Auth & Data Sync ---
   useEffect(() => {
-    const initAuth = async () => {
-      await signInAnonymously(auth);
-    };
-    initAuth();
-    
-    return onAuthStateChanged(auth, (user) => setUser(user));
+    return onAuthStateChanged(auth, (currentUser) => {
+      setUser(currentUser);
+      if (!currentUser) {
+        setIsSignInOpen(true);
+      }
+    });
   }, []);
 
   useEffect(() => {
@@ -123,6 +129,30 @@ export default function Silver() {
      if (confirm('Delete this problem?')) {
        await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'problems', id));
      }
+  };
+
+  const handleGoogleSignIn = async () => {
+    const provider = new GoogleAuthProvider();
+    try {
+      await signInWithPopup(auth, provider);
+      setIsSignInOpen(false);
+    } catch (error) {
+      console.error('Google sign-in error:', error);
+    }
+  };
+
+  const handleGithubSignIn = async () => {
+    const provider = new GithubAuthProvider();
+    try {
+      await signInWithPopup(auth, provider);
+      setIsSignInOpen(false);
+    } catch (error) {
+      console.error('GitHub sign-in error:', error);
+    }
+  };
+
+  const handleSignOut = async () => {
+    await signOut(auth);
   };
 
   // --- Derived State ---
@@ -255,13 +285,20 @@ export default function Silver() {
               Sil<span className="text-gray-900 font-bold">ver</span>
             </h1>
           </div>
-          <div className="flex gap-3">
+          <div className="flex gap-3 items-center">
             <button className="p-2 rounded-full hover:bg-gray-100 text-gray-600">
               <Search size={20} />
             </button>
-            <div className="w-9 h-9 rounded-full bg-blue-500 text-white flex items-center justify-center font-bold shadow-blue-200 shadow-md">
-              Y
-            </div>
+            {user ? (
+              <UserMenu user={user} onSignOut={handleSignOut} />
+            ) : (
+              <button 
+                onClick={() => setIsSignInOpen(true)}
+                className="px-4 py-2 rounded-full bg-blue-500 text-white text-sm font-medium hover:bg-blue-600 transition-colors"
+              >
+                Sign In
+              </button>
+            )}
           </div>
         </header>
 
@@ -389,6 +426,13 @@ export default function Silver() {
           isOpen={isAddOpen} 
           onClose={() => setIsAddOpen(false)} 
           onAdd={handleAddProblem}
+        />
+
+        <SignInModal 
+          isOpen={isSignInOpen}
+          onClose={() => setIsSignInOpen(false)}
+          onGoogleSignIn={handleGoogleSignIn}
+          onGithubSignIn={handleGithubSignIn}
         />
         
       </div>

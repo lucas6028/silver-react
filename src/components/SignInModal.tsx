@@ -1,4 +1,3 @@
-import React from 'react';
 import { X, Github } from 'lucide-react';
 
 interface SignInModalProps {
@@ -8,7 +7,7 @@ interface SignInModalProps {
   onGithubSignIn: () => void;
 }
 
-export const SignInModal: React.FC<SignInModalProps> = ({ isOpen, onClose, onGoogleSignIn, onGithubSignIn }) => {
+export const SignInModal = ({ isOpen, onClose, onGoogleSignIn, onGithubSignIn }: SignInModalProps) => {
   if (!isOpen) return null;
 
   return (

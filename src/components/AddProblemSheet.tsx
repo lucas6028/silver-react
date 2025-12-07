@@ -10,6 +10,10 @@ interface AddProblemSheetProps {
   onAdd: (problemData: Omit<Problem, 'id'>) => void;
 }
 
+interface ToggleTagFn {
+  (tagName: string): void;
+}
+
 export const AddProblemSheet = ({ isOpen, onClose, onAdd }: AddProblemSheetProps) => {
   const [url, setUrl] = useState('');
   const [isParsing, setIsParsing] = useState(false);
@@ -60,10 +64,6 @@ export const AddProblemSheet = ({ isOpen, onClose, onAdd }: AddProblemSheetProps
       }, 800);
     }
   };
-
-  interface ToggleTagFn {
-    (tagName: string): void;
-  }
 
   const toggleTag: ToggleTagFn = (tagName) => {
     setForm((prev) => ({
