@@ -78,7 +78,7 @@ export default function Silver() {
     // Optimistic UI update and immediate celebration
     setProblems(prev => prev.map(p => p.id === id ? { ...p, ...updateData, ...(balloonColor ? { balloonColor } : {}) } : p));
     if (newStatus === 'Done' && balloonColor) {
-      spawnFlyingBalloons(balloonColor);
+      spawnFlyingBalloons(balloonColor, 10);
     }
 
     if (id.startsWith('local-')) return;
