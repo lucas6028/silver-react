@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { db, appId } from '../lib/firebase';
-import { collection, addDoc, onSnapshot, doc, updateDoc, deleteDoc, serverTimestamp, arrayUnion, query, where } from 'firebase/firestore';
+import { collection, addDoc, onSnapshot, doc, updateDoc, deleteDoc, serverTimestamp, arrayUnion, arrayRemove, query, where } from 'firebase/firestore';
 import type { Problem } from '../types';
 import type { User } from 'firebase/auth';
 
@@ -90,12 +90,30 @@ export const useFirestoreProblems = (user: User | null) => {
     } catch (e) { console.error(e); }
   };
 
+  const toggleAssignee = async (id: string, uid: string, assign: boolean) => {
+    // Optimistic UI update
+    setProblems(prev => prev.map(p => p.id === id ? { ...p, assignees: assign ? Array.from(new Set([...(p.assignees || []), uid])) : (p.assignees || []).filter(a => a !== uid) } : p));
+    if (id.startsWith('local-')) {
+      return;
+    }
+    if (!user) return;
+
+    try {
+      if (assign) {
+        await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'problems', id), { assignees: arrayUnion(uid) });
+      } else {
+        await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'problems', id), { assignees: arrayRemove(uid) });
+      }
+    } catch (e) { console.error(e); }
+  };
+
   return {
     problems,
     addProblem,
     updateStatus,
     deleteProblem,
     assignToMe,
+    toggleAssignee,
     setProblems,
   };
 };

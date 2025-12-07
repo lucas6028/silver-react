@@ -39,7 +39,7 @@ export default function Silver() {
   const { teams, createTeam, joinTeam, leaveTeam } = useTeams(user, userProfile);
   const [currentTeamIndex, setCurrentTeamIndex] = useState(0);
   const [view, setView] = useState('problems');
-  const { problems, addProblem, updateStatus: updateProblemStatus, deleteProblem, assignToMe, setProblems } = useFirestoreProblems(user);
+  const { problems, addProblem, updateStatus: updateProblemStatus, deleteProblem, toggleAssignee, setProblems } = useFirestoreProblems(user);
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [isSignInOpen, setIsSignInOpen] = useState(false);
   const [isTeamModalOpen, setIsTeamModalOpen] = useState(false);
@@ -126,9 +126,9 @@ export default function Silver() {
      }
   };
 
-  const handleAssignToMe = async (id: string): Promise<void> => {
+  const handleAssignToUser = async (problemId: string, userId: string): Promise<void> => {
     if (!user) return;
-    await assignToMe(id);
+    await toggleAssignee(problemId, userId, true);
   };
 
   const handleGoogleSignIn = async () => {
@@ -372,7 +372,8 @@ export default function Silver() {
                     onUpdateStatus={handleUpdateStatus}
                     onDelete={handleDelete}
                     currentUserId={user?.uid}
-                    onAssignToMe={handleAssignToMe}
+                    onAssignToUser={handleAssignToUser}
+                    members={currentTeam?.members ?? null}
                   />
                 ))}
                 
@@ -588,6 +589,7 @@ export default function Silver() {
           onClose={() => setIsAddOpen(false)} 
           onAdd={handleAddProblem}
           currentUserId={user?.uid}
+          members={currentTeam?.members ?? null}
         />
 
         <SignInModal 

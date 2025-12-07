@@ -5,7 +5,7 @@ import type { Team, TeamMember, UserProfile } from '../types';
 import type { User } from 'firebase/auth';
 import { generateTeamCode } from '../lib/utils';
 
-export const useTeams = (user: User | null, userProfile: UserProfile | null) => {
+export const useTeams = (_user: User | null, userProfile: UserProfile | null) => {
   const [teams, setTeams] = useState<Team[]>([]);
 
   useEffect(() => {

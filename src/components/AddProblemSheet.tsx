@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { X } from 'lucide-react';
 // Remove direct dependency on firestore sentinel here; App will set timestamps.
 import { PLATFORMS, TAGS, TEAM_MEMBERS } from '../constants';
+import type { TeamMember } from '../types';
 import type { Problem } from '../types';
 
 interface AddProblemSheetProps {
@@ -9,13 +10,14 @@ interface AddProblemSheetProps {
   onClose: () => void;
   onAdd: (problemData: Omit<Problem, 'id'>) => void;
   currentUserId?: string | null;
+  members?: TeamMember[] | null;
 }
 
 interface ToggleTagFn {
   (tagName: string): void;
 }
 
-export const AddProblemSheet = ({ isOpen, onClose, onAdd, currentUserId }: AddProblemSheetProps) => {
+export const AddProblemSheet = ({ isOpen, onClose, onAdd, currentUserId, members }: AddProblemSheetProps) => {
   const [url, setUrl] = useState('');
   const [isParsing, setIsParsing] = useState(false);
   type ProblemForm = {
@@ -97,6 +99,9 @@ export const AddProblemSheet = ({ isOpen, onClose, onAdd, currentUserId }: AddPr
         : [...prev.assignees, assigneeId],
     }));
   };
+
+  type AnyMember = TeamMember | (typeof TEAM_MEMBERS)[number];
+  const memberList = (members && members.length > 0 ? members : TEAM_MEMBERS) as AnyMember[];
 
   if (!isOpen) return null;
 
@@ -187,19 +192,31 @@ export const AddProblemSheet = ({ isOpen, onClose, onAdd, currentUserId }: AddPr
           <div>
             <label className="text-xs font-medium text-gray-500 mb-2 block">Assignees</label>
             <div className="flex flex-wrap gap-2">
-              {TEAM_MEMBERS.map(member => (
-                <button
-                  key={member.id}
-                  onClick={() => toggleAssignee(member.id)}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
-                    form.assignees.includes(member.id)
-                      ? 'bg-green-100 text-green-800 ring-2 ring-green-500 ring-offset-1'
-                      : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                  }`}
-                >
-                  {member.name}
-                </button>
-              ))}
+              {memberList.map((member) => {
+                let id: string;
+                let label: string;
+                type MockMember = (typeof TEAM_MEMBERS)[number];
+                if ('uid' in member) {
+                  id = (member as TeamMember).uid;
+                  label = (member as TeamMember).displayName;
+                } else {
+                  id = (member as MockMember).id;
+                  label = (member as MockMember).name;
+                }
+                return (
+                  <button
+                    key={id}
+                    onClick={() => toggleAssignee(id)}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
+                      form.assignees.includes(id)
+                        ? 'bg-green-100 text-green-800 ring-2 ring-green-500 ring-offset-1'
+                        : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                    }`}
+                  >
+                    {label}
+                  </button>
+                );
+              })}
             </div>
           </div>
 

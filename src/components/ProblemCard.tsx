@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
-import { ExternalLink, Trash2, ChevronDown } from 'lucide-react';
-import { PLATFORMS, BALLOON_COLORS, TEAM_MEMBERS } from '../constants';
+import { ExternalLink, Trash2, ChevronDown, UserPlus } from 'lucide-react';
+import { PLATFORMS, BALLOON_COLORS } from '../constants';
+import type { TeamMember } from '../types';
 import { Balloon } from './Balloon';
 import type { Problem } from '../types';
 
@@ -9,12 +10,15 @@ interface ProblemCardProps {
   onUpdateStatus: (id: string, status: string) => void;
   onDelete: (id: string) => void;
   currentUserId?: string | null;
-  onAssignToMe?: (id: string) => Promise<void> | void;
+  onAssignToUser?: (problemId: string, userId: string) => Promise<void> | void;
+  members?: TeamMember[] | null;
 }
 
-export const ProblemCard = ({ problem, onUpdateStatus, onDelete, currentUserId, onAssignToMe }: ProblemCardProps) => {
+export const ProblemCard = ({ problem, onUpdateStatus, onDelete, currentUserId, onAssignToUser, members }: ProblemCardProps) => {
   const [isStatusOpen, setIsStatusOpen] = useState(false);
+  const [isAssigneeOpen, setIsAssigneeOpen] = useState(false);
   const statusMenuRef = useRef<HTMLDivElement>(null);
+  const assigneeMenuRef = useRef<HTMLDivElement>(null);
   const platformStyle = PLATFORMS.find(p => p.name === problem.platform) || PLATFORMS[3];
   
   useEffect(() => {
@@ -22,16 +26,19 @@ export const ProblemCard = ({ problem, onUpdateStatus, onDelete, currentUserId, 
       if (statusMenuRef.current && !statusMenuRef.current.contains(event.target as Node)) {
         setIsStatusOpen(false);
       }
+      if (assigneeMenuRef.current && !assigneeMenuRef.current.contains(event.target as Node)) {
+        setIsAssigneeOpen(false);
+      }
     };
 
-    if (isStatusOpen) {
+    if (isStatusOpen || isAssigneeOpen) {
       document.addEventListener('mousedown', handleClickOutside);
     }
 
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
     };
-  }, [isStatusOpen]);
+  }, [isStatusOpen, isAssigneeOpen]);
   
   // Mapping statuses to ICPC/OJ verdicts
   const statusConfig: Record<string, { label: string; color: string; bg: string }> = {
@@ -120,31 +127,81 @@ export const ProblemCard = ({ problem, onUpdateStatus, onDelete, currentUserId, 
 
       <div className="flex justify-between items-center mt-3 pt-3 border-t border-gray-50">
         <div className="flex -space-x-2">
-           {problem.assignees?.map((userId: string, idx: number) => {
-             const member = TEAM_MEMBERS.find(m => m.id === userId);
-             if (member) {
+           {problem.assignees?.map((userId: string) => {
+             const member = members?.find(m => m.uid === userId);
+               if (member) {
+               const typedMember = member as TeamMember | { id: string; name: string; avatar?: string };
+               const avatarClass = 'avatar' in typedMember && typedMember.avatar ? typedMember.avatar : 'bg-gray-400';
+               let initial = '?';
+               if ('displayName' in typedMember && typedMember.displayName) initial = typedMember.displayName[0];
+               else if ('name' in typedMember && typedMember.name) initial = typedMember.name[0];
+               else initial = userId[0] || '?';
+               const titleText = 'displayName' in typedMember ? typedMember.displayName : (('name' in typedMember) ? typedMember.name : userId);
+               const photoURL = 'photoURL' in typedMember ? typedMember.photoURL : undefined;
                return (
-                 <div key={idx} className={`w-6 h-6 rounded-full border-2 border-white flex items-center justify-center text-[10px] text-white ${member.avatar}`}>
-                   {member.name[0]}
+                 <div key={userId} title={titleText} className={`w-6 h-6 rounded-full border-2 border-white flex items-center justify-center text-[10px] text-white ${avatarClass} relative overflow-hidden`}>
+                   {photoURL ? (
+                     <img src={photoURL} alt={titleText} className="w-full h-full object-cover" />
+                   ) : (
+                     initial
+                   )}
                  </div>
                );
-             }
-             // If the assignee is current user (by UID) show a 'You' badge
-             if (currentUserId && userId === currentUserId) {
-               return (
-                 <div key={idx} className={`w-6 h-6 rounded-full border-2 border-white flex items-center justify-center text-[10px] text-white bg-blue-500`}>
-                   Y
-                 </div>
-               );
-             }
-             return null;
+              }
+              // If the assignee is current user (by UID) show a 'You' badge
+              if (currentUserId && userId === currentUserId) {
+                return (
+                  <div key={userId} title={'You'} className={`w-6 h-6 rounded-full border-2 border-white flex items-center justify-center text-[10px] text-white bg-blue-500 relative`}>
+                    Y
+                  </div>
+                );
+              }
+              // If member info is not available but we have a UID, show a fallback initial
+              const fallbackInitial = userId?.[0] || '?';
+              return (
+                <div key={userId} title={userId} className={`w-6 h-6 rounded-full border-2 border-white flex items-center justify-center text-[10px] text-white bg-gray-300 relative`}>
+                  {fallbackInitial}
+                </div>
+              );
            })}
-           {currentUserId && !isAssignee ? (
-             <button onClick={() => onAssignToMe?.(problem.id)} className="w-6 h-6 rounded-full border-2 border-dashed border-gray-300 flex items-center justify-center text-gray-400 bg-gray-50 hover:bg-gray-100 text-[10px]">
-               +
-             </button>
-           ) : (
-             <div className="w-6 h-6 rounded-full border-2 border-dashed border-gray-100 flex items-center justify-center text-gray-300 bg-gray-50 text-[10px]">+</div>
+           {canEdit && members && members.length > 0 && (
+             <div className="relative" ref={assigneeMenuRef}>
+               <button 
+                 onClick={() => setIsAssigneeOpen(!isAssigneeOpen)}
+                 className="w-6 h-6 rounded-full border-2 border-dashed border-gray-300 flex items-center justify-center text-gray-400 bg-gray-50 hover:bg-gray-100 text-[10px] relative z-10 cursor-pointer transition-colors"
+                 title="Assign to teammate"
+               >
+                 <UserPlus size={12} />
+               </button>
+               {isAssigneeOpen && (
+                 <div className="absolute left-0 mt-1 w-48 bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden z-[100] animate-in slide-in-from-top-2 duration-200">
+                   {members
+                     .filter(m => !problem.assignees?.includes(m.uid))
+                     .map((member) => (
+                       <button
+                         key={member.uid}
+                         onClick={() => {
+                           onAssignToUser?.(problem.id, member.uid);
+                           setIsAssigneeOpen(false);
+                         }}
+                         className="w-full px-3 py-2 text-left text-xs font-medium transition-colors hover:bg-gray-50 text-gray-700 flex items-center gap-2"
+                       >
+                         <div className="w-5 h-5 rounded-full bg-gray-400 flex items-center justify-center text-white text-[9px] overflow-hidden">
+                           {member.photoURL ? (
+                             <img src={member.photoURL} alt={member.displayName} className="w-full h-full object-cover" />
+                           ) : (
+                             member.displayName?.[0] || '?'
+                           )}
+                         </div>
+                         <span>{member.displayName}</span>
+                       </button>
+                     ))}
+                   {members.filter(m => !problem.assignees?.includes(m.uid)).length === 0 && (
+                     <div className="px-3 py-2 text-xs text-gray-400 text-center">All teammates assigned</div>
+                   )}
+                 </div>
+               )}
+             </div>
            )}
         </div>
         
