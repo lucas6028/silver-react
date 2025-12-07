@@ -4,6 +4,7 @@ import { X } from 'lucide-react';
 import { PLATFORMS, TAGS, TEAM_MEMBERS } from '../constants';
 import type { TeamMember } from '../types';
 import type { Problem } from '../types';
+import { scrapeProblemDetails } from '../lib/problemScraper';
 
 interface AddProblemSheetProps {
   isOpen: boolean;
@@ -20,6 +21,7 @@ interface ToggleTagFn {
 export const AddProblemSheet = ({ isOpen, onClose, onAdd, currentUserId, members }: AddProblemSheetProps) => {
   const [url, setUrl] = useState('');
   const [isParsing, setIsParsing] = useState(false);
+  const [parseError, setParseError] = useState<string | null>(null);
   type ProblemForm = {
     title: string;
     platform: string;
@@ -48,37 +50,50 @@ export const AddProblemSheet = ({ isOpen, onClose, onAdd, currentUserId, members
       });
       setUrl('');
       setIsParsing(false);
+      setParseError(null);
     }
   }, [isOpen, currentUserId]);
 
-  const handleUrlPaste = (e: React.ChangeEvent<HTMLInputElement>): void => {
+  const handleUrlPaste = async (e: React.ChangeEvent<HTMLInputElement>): Promise<void> => {
     const val = e.target.value;
     setUrl(val);
-    if (val.length > 5) {
+    setParseError(null);
+    
+    if (val.length > 10) {
       setIsParsing(true);
-      setTimeout(() => {
-        let detectedPlatform: string = 'Other';
-        let detectedTitle: string = '';
+      
+      try {
+        const problemData = await scrapeProblemDetails(val);
         
-        if (val.includes('codeforces')) {
-            detectedPlatform = 'Codeforces';
-            detectedTitle = '1899A. Game with Integers';
-        } else if (val.includes('leetcode')) {
-            detectedPlatform = 'LeetCode';
-            detectedTitle = 'Two Sum';
-        } else if (val.includes('atcoder')) {
-            detectedPlatform = 'AtCoder';
-            detectedTitle = 'ABC 321 - D';
+        if (problemData) {
+          setForm((prev) => ({
+            ...prev,
+            title: problemData.title,
+            platform: problemData.platform,
+            difficulty: problemData.difficulty || prev.difficulty,
+            tags: problemData.tags || prev.tags,
+            url: val
+          }));
+        } else {
+          setParseError('Unable to fetch problem details. Please enter manually.');
+          // Still try to detect platform from URL
+          let detectedPlatform = 'Other';
+          if (val.includes('leetcode')) detectedPlatform = 'LeetCode';
+          else if (val.includes('codeforces')) detectedPlatform = 'Codeforces';
+          else if (val.includes('atcoder')) detectedPlatform = 'AtCoder';
+          
+          setForm((prev) => ({
+            ...prev,
+            platform: detectedPlatform,
+            url: val
+          }));
         }
-
-        setForm((prev) => ({
-          ...prev,
-          platform: detectedPlatform,
-          title: detectedTitle || prev.title,
-          url: val
-        }));
+      } catch (error) {
+        console.error('Error scraping problem:', error);
+        setParseError('Failed to fetch problem details. Please check your connection.');
+      } finally {
         setIsParsing(false);
-      }, 800);
+      }
     }
   };
 
@@ -132,6 +147,12 @@ export const AddProblemSheet = ({ isOpen, onClose, onAdd, currentUserId, members
                 </div>
               )}
             </div>
+            {parseError && (
+              <p className="text-xs text-amber-600 mt-1 flex items-center gap-1">
+                <span>⚠️</span>
+                {parseError}
+              </p>
+            )}
           </div>
 
           <div>
