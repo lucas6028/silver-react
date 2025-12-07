@@ -27,6 +27,7 @@ import {
   doc, 
   updateDoc, 
   deleteDoc,
+  serverTimestamp,
   query
 } from 'firebase/firestore';
 
@@ -34,7 +35,6 @@ import {
   TEAM_MEMBERS, 
   UPCOMING_CONTESTS, 
   BALLOON_COLORS, 
-  MOCK_PROBLEMS,
   ALL_BALLOON_COLORS
 } from './constants';
 
@@ -85,7 +85,7 @@ export default function Silver() {
     
     const unsubscribe = onSnapshot(q, (snapshot) => {
       if (snapshot.empty) {
-        setProblems(MOCK_PROBLEMS);
+        setProblems([]);
         return;
       }
 
@@ -97,7 +97,7 @@ export default function Silver() {
       setProblems(data);
     }, (error) => {
       console.error("Firestore Error:", error);
-      setProblems(MOCK_PROBLEMS as Problem[]);
+      setProblems([]);
     });
 
     return () => unsubscribe();
@@ -107,7 +107,19 @@ export default function Silver() {
   const handleAddProblem = async (problemData: Omit<Problem, 'id'>) => {
     if (!user) return;
     try {
-      await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'problems'), problemData);
+      // Optimistic UI: add a local placeholder so users see the new item immediately
+      const localId = `local-${Date.now()}`;
+      const optimisticProblem: Problem = { id: localId, ...problemData } as Problem;
+      setProblems(prev => [optimisticProblem, ...prev]);
+
+      await addDoc(
+        collection(db, 'artifacts', appId, 'public', 'data', 'problems'),
+        { ...problemData, createdAt: problemData.createdAt || serverTimestamp() }
+      );
+
+      // Once Firestore returns the doc id we can remove the optimistic local placeholder
+      setProblems(prev => prev.filter(p => p.id !== localId));
+      // The new doc will be picked up by the realtime listener and appear in the list
     } catch (e) {
       console.error("Add failed", e);
       const newProblem: Problem = { id: `local-${Date.now()}`, ...problemData, createdAt: { seconds: Date.now() / 1000 } };
@@ -133,7 +145,7 @@ export default function Silver() {
       spawnFlyingBalloons(updateData.balloonColor as string);
     }
 
-    if (id.startsWith('mock-')) {
+    if (id.startsWith('local-')) {
       return;
     }
     if (!user) return;
@@ -160,8 +172,8 @@ export default function Silver() {
   };
 
   const handleDelete = async (id: string): Promise<void> => {
-    if (id.startsWith('mock-')) {
-       if (confirm('Delete this mock problem?')) {
+    if (id.startsWith('local-')) {
+       if (confirm('Delete this local (unsaved) problem?')) {
          setProblems((prev) => prev.filter((p) => p.id !== id));
        }
        return;

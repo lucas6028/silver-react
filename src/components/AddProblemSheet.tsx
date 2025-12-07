@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { X } from 'lucide-react';
-import { serverTimestamp } from 'firebase/firestore';
+// Remove direct dependency on firestore sentinel here; App will set timestamps.
 import { PLATFORMS, TAGS } from '../constants';
 import type { Problem } from '../types';
 
@@ -161,12 +161,11 @@ export const AddProblemSheet = ({ isOpen, onClose, onAdd }: AddProblemSheetProps
           </div>
 
           <button 
-            onClick={() => {
+              onClick={() => {
               if(!form.title) return;
               onAdd({
                 ...form,
-                status: 'Todo',
-                createdAt: serverTimestamp()
+                status: 'Todo'
               });
               onClose();
             }}
