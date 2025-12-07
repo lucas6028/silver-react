@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useMemo } from 'react';
 import { 
   Plus, 
   LayoutDashboard, 
@@ -11,29 +11,11 @@ import {
   BarChart3,
   Trophy
 } from 'lucide-react';
-import { auth, db, appId } from './lib/firebase';
-import { 
-  onAuthStateChanged,
-  signInWithPopup,
-  GoogleAuthProvider,
-  GithubAuthProvider,
-  signOut
-} from 'firebase/auth';
-import type { User } from 'firebase/auth';
-import { 
-  collection, 
-  addDoc, 
-  onSnapshot, 
-  doc, 
-  updateDoc, 
-  deleteDoc,
-  serverTimestamp,
-  arrayUnion,
-  query,
-  where,
-  setDoc,
-  getDocs
-} from 'firebase/firestore';
+// import type { User } from 'firebase/auth';
+import { useAuthProfile } from './hooks/useAuthProfile';
+import { useFirestoreProblems } from './hooks/useFirestoreProblems';
+import { useTeams } from './hooks/useTeams';
+import { chooseColorForProblem } from './lib/utils';
 
 import { 
   UPCOMING_CONTESTS, 
@@ -51,133 +33,25 @@ import { UserMenu } from './components/UserMenu';
 import { FlyingBalloons } from './components/FlyingBalloons';
 import { TeamModal } from './components/TeamModal';
 import type { FlyingBalloon } from './components/FlyingBalloons';
-import type { Problem, Team, UserProfile, TeamMember } from './types';
+import type { Problem } from './types';
 export default function Silver() {
-  const [user, setUser] = useState<User | null>(null);
-  const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
-  const [team, setTeam] = useState<Team | null>(null);
+  const { user, userProfile, signInWithGoogle, signInWithGithub, signOutUser } = useAuthProfile();
+  const { teams, createTeam, joinTeam, leaveTeam } = useTeams(user, userProfile);
+  const [currentTeamIndex, setCurrentTeamIndex] = useState(0);
   const [view, setView] = useState('problems');
-  const [problems, setProblems] = useState<Problem[]>([]);
+  const { problems, addProblem, updateStatus: updateProblemStatus, deleteProblem, assignToMe, setProblems } = useFirestoreProblems(user);
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [isSignInOpen, setIsSignInOpen] = useState(false);
   const [isTeamModalOpen, setIsTeamModalOpen] = useState(false);
   const [filter, setFilter] = useState('All');
   const [flyingBalloons, setFlyingBalloons] = useState<FlyingBalloon[]>([]);
+  const [showTeamCode, setShowTeamCode] = useState(false);
+  const [touchStart, setTouchStart] = useState(0);
+  const [touchEnd, setTouchEnd] = useState(0);
 
-  const chooseColorForProblem = (seed: string) => {
-    let hash = 0;
-    for (let i = 0; i < seed.length; i++) {
-      hash = ((hash << 5) - hash) + seed.charCodeAt(i);
-      hash |= 0;
-    }
-    const idx = Math.abs(hash) % ALL_BALLOON_COLORS.length;
-    return ALL_BALLOON_COLORS[idx];
-  };
+  // Use helper in src/lib/utils
 
-  // --- Auth & Data Sync ---
-  useEffect(() => {
-    return onAuthStateChanged(auth, (currentUser) => {
-      setUser(currentUser);
-      if (!currentUser) {
-        setIsSignInOpen(true);
-        setUserProfile(null);
-        setTeam(null);
-      }
-    });
-  }, []);
-
-  // Sync user profile
-  useEffect(() => {
-    if (!user) return;
-
-    const userDocRef = doc(db, 'artifacts', appId, 'public', 'data', 'users', user.uid);
-    
-    const unsubscribe = onSnapshot(userDocRef, async (docSnap) => {
-      if (docSnap.exists()) {
-        const profile = { uid: user.uid, ...docSnap.data() } as UserProfile;
-        setUserProfile(profile);
-      } else {
-        // Create user profile if it doesn't exist
-        const newProfile: Omit<UserProfile, 'uid'> = {
-          displayName: user.displayName || 'Anonymous',
-          email: user.email || '',
-          photoURL: user.photoURL || undefined,
-        };
-        try {
-          await setDoc(userDocRef, newProfile);
-          setUserProfile({ uid: user.uid, ...newProfile });
-        } catch (error) {
-          console.error('Error creating user profile:', error);
-          // Fallback: set profile without saving to Firestore
-          setUserProfile({ uid: user.uid, ...newProfile });
-        }
-      }
-    }, (error) => {
-      console.error("Error syncing user profile:", error);
-      // Fallback: create a local-only profile
-      const fallbackProfile: UserProfile = {
-        uid: user.uid,
-        displayName: user.displayName || 'Anonymous',
-        email: user.email || '',
-        photoURL: user.photoURL || undefined,
-      };
-      setUserProfile(fallbackProfile);
-    });
-
-    return () => unsubscribe();
-  }, [user]);
-
-  // Sync team data
-  useEffect(() => {
-    if (!userProfile?.teamId) {
-      return;
-    }
-
-    const teamDocRef = doc(db, 'artifacts', appId, 'public', 'data', 'teams', userProfile.teamId);
-    
-    const unsubscribe = onSnapshot(teamDocRef, (docSnap) => {
-      if (docSnap.exists()) {
-        setTeam({ id: docSnap.id, ...docSnap.data() } as Team);
-      } else {
-        setTeam(null);
-      }
-    });
-
-    return () => {
-      unsubscribe();
-      setTeam(null);
-    };
-  }, [userProfile?.teamId]);
-
-  useEffect(() => {
-    if (!user) return;
-    
-    // Query only documents where user is in assignees array
-    // (creator is automatically added to assignees on creation)
-    const q = query(
-      collection(db, 'artifacts', appId, 'public', 'data', 'problems'),
-      where('assignees', 'array-contains', user.uid)
-    );
-    
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      if (snapshot.empty) {
-        setProblems([]);
-        return;
-      }
-
-      const data = snapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      })) as Problem[];
-      data.sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0));
-      setProblems(data);
-    }, (error) => {
-      console.error("Firestore Error:", error);
-      setProblems([]);
-    });
-
-    return () => unsubscribe();
-  }, [user]);
+  // Hooked auth/profile/teams/problems
 
   // --- Actions ---
   const handleAddProblem = async (problemData: Omit<Problem, 'id'>) => {
@@ -186,26 +60,7 @@ export default function Silver() {
     const assignees = problemData.assignees && problemData.assignees.length > 0 
       ? [...new Set([user.uid, ...problemData.assignees])] // Ensure creator is always included
       : [user.uid];
-    
-    try {
-      // Optimistic UI: add a local placeholder so users see the new item immediately
-      const localId = `local-${Date.now()}`;
-      const optimisticProblem: Problem = { id: localId, ...problemData, assignees, createdBy: user.uid } as Problem;
-      setProblems(prev => [optimisticProblem, ...prev]);
-
-      await addDoc(
-        collection(db, 'artifacts', appId, 'public', 'data', 'problems'),
-        { ...problemData, assignees, createdAt: problemData.createdAt || serverTimestamp(), createdBy: user.uid }
-      );
-
-      // Once Firestore returns the doc id we can remove the optimistic local placeholder
-      setProblems(prev => prev.filter(p => p.id !== localId));
-      // The new doc will be picked up by the realtime listener and appear in the list
-    } catch (e) {
-      console.error("Add failed", e);
-      const newProblem: Problem = { id: `local-${Date.now()}`, ...problemData, assignees, createdAt: { seconds: Date.now() / 1000 }, createdBy: user.uid };
-      setProblems(prev => [newProblem, ...prev]);
-    }
+    await addProblem({ ...problemData, assignees, createdBy: user.uid });
   };
 
   interface UpdateStatusFn {
@@ -215,23 +70,21 @@ export default function Silver() {
   const handleUpdateStatus: UpdateStatusFn = async (id, newStatus) => {
     // Prepare update payload
     const updateData: Partial<Problem> = { status: newStatus };
+    let balloonColor: string | undefined = undefined;
     if (newStatus === 'Done') {
-      const chosenColor = chooseColorForProblem(id);
-      updateData.balloonColor = chosenColor;
+      balloonColor = chooseColorForProblem(id, ALL_BALLOON_COLORS);
     }
 
     // Optimistic UI update and immediate celebration
-    setProblems(prev => prev.map(p => p.id === id ? { ...p, ...updateData } : p));
-    if (newStatus === 'Done' && updateData.balloonColor) {
-      spawnFlyingBalloons(updateData.balloonColor as string);
+    setProblems(prev => prev.map(p => p.id === id ? { ...p, ...updateData, ...(balloonColor ? { balloonColor } : {}) } : p));
+    if (newStatus === 'Done' && balloonColor) {
+      spawnFlyingBalloons(balloonColor);
     }
 
-    if (id.startsWith('local-')) {
-      return;
-    }
+    if (id.startsWith('local-')) return;
     if (!user) return;
     try {
-      await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'problems', id), updateData);
+      await updateProblemStatus(id, newStatus, balloonColor);
     } catch (e) { console.error(e); }
   };
 
@@ -269,161 +122,53 @@ export default function Silver() {
        return;
      }
      if (confirm('Delete this problem?')) {
-       await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'problems', id));
+       await deleteProblem(id);
      }
   };
 
   const handleAssignToMe = async (id: string): Promise<void> => {
     if (!user) return;
-    if (id.startsWith('local-')) {
-      setProblems(prev => prev.map(p => p.id === id ? { ...p, assignees: Array.from(new Set([...(p.assignees || []), user.uid])) } : p));
-      return;
-    }
-    try {
-      await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'problems', id), {
-        assignees: arrayUnion(user.uid)
-      });
-    } catch (e) {
-      console.error(e);
-    }
+    await assignToMe(id);
   };
 
   const handleGoogleSignIn = async () => {
-    const provider = new GoogleAuthProvider();
     try {
-      await signInWithPopup(auth, provider);
+      await signInWithGoogle();
       setIsSignInOpen(false);
-    } catch (error) {
-      console.error('Google sign-in error:', error);
-    }
+    } catch (e) { console.error(e); }
   };
 
   const handleGithubSignIn = async () => {
-    const provider = new GithubAuthProvider();
     try {
-      await signInWithPopup(auth, provider);
+      await signInWithGithub();
       setIsSignInOpen(false);
-    } catch (error) {
-      console.error('GitHub sign-in error:', error);
-    }
+    } catch (e) { console.error(e); }
   };
 
   const handleSignOut = async () => {
-    await signOut(auth);
+    await signOutUser();
   };
 
   // --- Team Management ---
-  const generateTeamCode = () => {
-    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // Exclude confusing characters
-    let code = '';
-    for (let i = 0; i < 6; i++) {
-      code += chars.charAt(Math.floor(Math.random() * chars.length));
-    }
-    return code;
-  };
+  // Team code generator not needed in the component; use hook which uses utils
 
   const handleCreateTeam = async (teamName: string) => {
     if (!user || !userProfile) throw new Error('You must be signed in to create a team');
-    if (userProfile.teamId) throw new Error('You are already in a team');
-
-    const teamCode = generateTeamCode();
-    const now = Date.now();
-    
-    const teamMember: TeamMember = {
-      uid: user.uid,
-      displayName: user.displayName || 'Anonymous',
-      email: user.email || '',
-      photoURL: user.photoURL || undefined,
-      joinedAt: now,
-      role: 'Captain'
-    };
-
-    const newTeam = {
-      name: teamName,
-      code: teamCode,
-      members: [teamMember],
-      createdAt: serverTimestamp(),
-      createdBy: user.uid
-    };
-
-    try {
-      const teamRef = await addDoc(
-        collection(db, 'artifacts', appId, 'public', 'data', 'teams'),
-        newTeam
-      );
-
-      // Update user profile with team ID
-      await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'users', user.uid), {
-        teamId: teamRef.id
-      });
-    } catch (error) {
-      console.error('Error creating team:', error);
-      throw new Error('Failed to create team. Please check your Firebase security rules.');
-    }
+    await createTeam(teamName, user);
   };
 
   const handleJoinTeam = async (teamCode: string) => {
     if (!user || !userProfile) throw new Error('You must be signed in to join a team');
-    if (userProfile.teamId) throw new Error('You are already in a team. Leave your current team first.');
-
-    // Find team by code
-    const teamsRef = collection(db, 'artifacts', appId, 'public', 'data', 'teams');
-    const q = query(teamsRef, where('code', '==', teamCode));
-    const snapshot = await getDocs(q);
-
-    if (snapshot.empty) {
-      throw new Error('Team not found. Please check the code and try again.');
-    }
-
-    const teamDoc = snapshot.docs[0];
-    const teamData = teamDoc.data() as Team;
-
-    // Check if user is already a member
-    if (teamData.members.some(m => m.uid === user.uid)) {
-      throw new Error('You are already a member of this team');
-    }
-
-    const now = Date.now();
-    const teamMember: TeamMember = {
-      uid: user.uid,
-      displayName: user.displayName || 'Anonymous',
-      email: user.email || '',
-      photoURL: user.photoURL || undefined,
-      joinedAt: now,
-      role: 'Member'
-    };
-
-    // Add user to team members
-    await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'teams', teamDoc.id), {
-      members: arrayUnion(teamMember)
-    });
-
-    // Update user profile with team ID
-    await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'users', user.uid), {
-      teamId: teamDoc.id
-    });
+    await joinTeam(teamCode, user);
   };
 
   const handleLeaveTeam = async () => {
-    if (!user || !userProfile || !team) return;
-
+    if (!user || !userProfile || teams.length === 0) return;
+    const currentTeam = teams[currentTeamIndex];
+    if (!currentTeam) return;
     if (confirm('Are you sure you want to leave this team?')) {
-      // Remove user from team members
-      const updatedMembers = team.members.filter(m => m.uid !== user.uid);
-      
-      if (updatedMembers.length === 0) {
-        // Delete team if no members left
-        await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'teams', team.id));
-      } else {
-        await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'teams', team.id), {
-          members: updatedMembers
-        });
-      }
-
-      // Remove team ID from user profile
-      await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'users', user.uid), {
-        teamId: null
-      });
+      await leaveTeam(currentTeam.id, user, userProfile);
+      if (currentTeamIndex >= teams.length - 1) setCurrentTeamIndex(Math.max(0, currentTeamIndex - 1));
     }
   };
 
@@ -441,6 +186,38 @@ export default function Silver() {
 
     return { total, completed, inProgress, pending, tags };
   }, [problems]);
+
+  const currentTeam = teams[currentTeamIndex] || null;
+
+  // Swipe handlers
+  const handleTouchStart = (e: React.TouchEvent) => {
+    setTouchStart(e.targetTouches[0].clientX);
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    setTouchEnd(e.targetTouches[0].clientX);
+  };
+
+  const handleTouchEnd = () => {
+    if (!touchStart || !touchEnd) return;
+    
+    const distance = touchStart - touchEnd;
+    const isLeftSwipe = distance > 50;
+    const isRightSwipe = distance < -50;
+
+    if (isLeftSwipe && currentTeamIndex < teams.length - 1) {
+      setCurrentTeamIndex(prev => prev + 1);
+      setShowTeamCode(false);
+    }
+    
+    if (isRightSwipe && currentTeamIndex > 0) {
+      setCurrentTeamIndex(prev => prev - 1);
+      setShowTeamCode(false);
+    }
+
+    setTouchStart(0);
+    setTouchEnd(0);
+  };
 
   const filteredProblems = problems.filter(p => {
     if (filter === 'All') return !!user && (p.createdBy === user.uid || p.assignees?.includes(user.uid));
@@ -611,7 +388,7 @@ export default function Silver() {
 
           {view === 'team' && (
             <div className="space-y-4 animate-in fade-in">
-              {!team ? (
+              {teams.length === 0 ? (
                 // No team - show create/join options
                 <div className="space-y-4">
                   <div className="bg-white rounded-2xl p-6 text-center">
@@ -632,28 +409,66 @@ export default function Silver() {
                 </div>
               ) : (
                 // Has team - show team info
-                <>
-                  <div className="bg-gradient-to-br from-blue-500 to-blue-600 rounded-2xl p-5 text-white shadow-lg">
+                <div
+                  onTouchStart={handleTouchStart}
+                  onTouchMove={handleTouchMove}
+                  onTouchEnd={handleTouchEnd}
+                >
+                  <div className="bg-blue-50 rounded-2xl p-5 shadow-sm border border-violet-100">
                     <div className="flex justify-between items-start mb-4">
-                      <div>
-                        <h2 className="text-2xl font-bold mb-1">{team.name}</h2>
-                        <div className="flex items-center gap-2 text-blue-100">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2 mb-1">
+                          <h2 className="text-2xl font-bold text-gray-900">{currentTeam?.name}</h2>
+                          {teams.length > 1 && (
+                            <span className="text-xs text-gray-500 bg-white px-2 py-0.5 rounded-full">
+                              {currentTeamIndex + 1}/{teams.length}
+                            </span>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-2 text-gray-600">
                           <Users size={14} />
-                          <span className="text-sm">{team.members.length} member{team.members.length !== 1 ? 's' : ''}</span>
+                          <span className="text-sm">{currentTeam?.members.length} member{currentTeam?.members.length !== 1 ? 's' : ''}</span>
                         </div>
                       </div>
-                      <button
-                        onClick={handleLeaveTeam}
-                        className="text-xs bg-white/20 hover:bg-white/30 px-3 py-1.5 rounded-lg transition-colors"
-                      >
-                        Leave
-                      </button>
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => setShowTeamCode(!showTeamCode)}
+                          className="text-xs bg-violet-100 hover:bg-violet-200 text-violet-800 px-3 py-1.5 rounded-lg transition-colors"
+                        >
+                          {showTeamCode ? 'Hide Code' : 'Show Code'}
+                        </button>
+                        <button
+                          onClick={handleLeaveTeam}
+                          className="text-xs bg-violet-100 hover:bg-violet-200 text-violet-800 px-3 py-1.5 rounded-lg transition-colors"
+                        >
+                          Leave
+                        </button>
+                      </div>
                     </div>
-                    <div className="bg-white/20 rounded-xl p-3 backdrop-blur-sm">
-                      <div className="text-xs text-blue-100 mb-1">Team Code</div>
-                      <div className="font-mono text-2xl font-bold tracking-widest">{team.code}</div>
-                      <div className="text-xs text-blue-100 mt-1">Share this code with others to invite them</div>
-                    </div>
+                    {showTeamCode && (
+                      <div className="bg-white rounded-lg p-2.5 border border-violet-200">
+                        <div className="text-[10px] text-gray-500 mb-0.5">Team Code</div>
+                        <div className="font-mono text-sm font-medium tracking-wide text-gray-900">{currentTeam?.code}</div>
+                      </div>
+                    )}
+                    {teams.length > 1 && (
+                      <div className="flex justify-center gap-1.5 mt-3">
+                        {teams.map((_, idx) => (
+                          <button
+                            key={idx}
+                            onClick={() => {
+                              setCurrentTeamIndex(idx);
+                              setShowTeamCode(false);
+                            }}
+                            className={`h-1.5 rounded-full transition-all ${
+                              idx === currentTeamIndex 
+                                ? 'w-6 bg-violet-600' 
+                                : 'w-1.5 bg-violet-300 hover:bg-violet-400'
+                            }`}
+                          />
+                        ))}
+                      </div>
+                    )}
                   </div>
 
                   <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
@@ -665,7 +480,7 @@ export default function Silver() {
                     </div>
                     
                     <div className="divide-y divide-gray-50">
-                      {team.members.map((member) => {
+                      {currentTeam?.members.map((member) => {
                         const memberProblems = problems.filter(p => p.assignees?.includes(member.uid));
                         const solved = memberProblems.filter(p => p.status === 'Done').length;
                         const total = memberProblems.length;
@@ -716,7 +531,15 @@ export default function Silver() {
                       <span className="font-mono font-bold">{problems.filter(p => p.status === 'Done').length}</span>
                     </div>
                   </div>
-                </>
+
+                  <button
+                    onClick={() => setIsTeamModalOpen(true)}
+                    className="w-full bg-white border border-gray-200 text-gray-700 py-3 rounded-xl font-medium hover:bg-gray-50 transition-colors flex items-center justify-center gap-2"
+                  >
+                    <Plus size={18} />
+                    Join Another Team
+                  </button>
+                </div>
               )}
             </div>
           )}

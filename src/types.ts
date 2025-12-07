@@ -32,7 +32,7 @@ export interface TeamMember {
 
 export interface UserProfile {
   uid: string;
-  teamId?: string;
+  teamIds?: string[];
   displayName: string;
   email: string;
   photoURL?: string;
