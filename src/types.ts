@@ -37,3 +37,12 @@ export interface UserProfile {
   email: string;
   photoURL?: string;
 }
+
+export interface Contest {
+  id: number;
+  name: string;
+  platform: string;
+  startTimeSeconds?: number;
+  durationSeconds?: number;
+  time?: string; // formatted time until start
+}

@@ -22,6 +22,7 @@ import {
   BALLOON_COLORS, 
   ALL_BALLOON_COLORS
 } from './constants';
+import useCodeforcesContests from './hooks/useCodeforcesContests';
 
 import { Balloon } from './components/Balloon';
 import { ProgressBar } from './components/ProgressBar';
@@ -173,6 +174,7 @@ export default function Silver() {
   };
 
   // --- Derived State ---
+  const { contests: cfContests } = useCodeforcesContests();
   const stats = useMemo(() => {
     const total = problems.length;
     const completed = problems.filter(p => p.status === 'Done').length;
@@ -240,11 +242,11 @@ export default function Silver() {
               <Calendar size={16} />
               <span className="text-xs font-bold uppercase tracking-wider">Next Contest</span>
             </div>
-            <h2 className="text-xl font-bold leading-tight mb-1">{UPCOMING_CONTESTS[0].name}</h2>
-            <div className="text-sm text-slate-400">{UPCOMING_CONTESTS[0].platform}</div>
+            <h2 className="text-xl font-bold leading-tight mb-1">{(cfContests && cfContests.length > 0 ? cfContests[0].name : UPCOMING_CONTESTS[0].name)}</h2>
+            <div className="text-sm text-slate-400">{(cfContests && cfContests.length > 0 ? cfContests[0].platform : UPCOMING_CONTESTS[0].platform)}</div>
           </div>
           <div className="bg-slate-800 p-3 rounded-xl text-center min-w-[80px] border border-slate-700">
-            <div className="text-lg font-mono font-bold text-blue-400">{UPCOMING_CONTESTS[0].time}</div>
+            <div className="text-lg font-mono font-bold text-blue-400">{(cfContests && cfContests.length > 0 ? cfContests[0].time : UPCOMING_CONTESTS[0].time)}</div>
             <div className="text-[10px] text-slate-500 uppercase">Starts In</div>
           </div>
         </div>
