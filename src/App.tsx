@@ -414,6 +414,7 @@ export default function Silver() {
                   onTouchStart={handleTouchStart}
                   onTouchMove={handleTouchMove}
                   onTouchEnd={handleTouchEnd}
+                  className="space-y-6"
                 >
                   <div className="bg-blue-50 rounded-2xl p-5 shadow-sm border border-violet-100">
                     <div className="flex justify-between items-start mb-4">
@@ -535,7 +536,7 @@ export default function Silver() {
 
                   <button
                     onClick={() => setIsTeamModalOpen(true)}
-                    className="w-full bg-white border border-gray-200 text-gray-700 py-3 rounded-xl font-medium hover:bg-gray-50 transition-colors flex items-center justify-center gap-2"
+                    className="w-full bg-white border border-gray-200 text-gray-700 py-3 rounded-xl font-medium hover:bg-gray-50 hover:shadow-md hover:border-gray-300 active:scale-[0.98] transition-all duration-200 flex items-center justify-center gap-2 shadow-sm"
                   >
                     <Plus size={18} />
                     Join Another Team
