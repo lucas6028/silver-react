@@ -8,9 +8,11 @@ interface ProblemCardProps {
   problem: Problem;
   onUpdateStatus: (id: string, status: string) => void;
   onDelete: (id: string) => void;
+  currentUserId?: string | null;
+  onAssignToMe?: (id: string) => Promise<void> | void;
 }
 
-export const ProblemCard = ({ problem, onUpdateStatus, onDelete }: ProblemCardProps) => {
+export const ProblemCard = ({ problem, onUpdateStatus, onDelete, currentUserId, onAssignToMe }: ProblemCardProps) => {
   const [isStatusOpen, setIsStatusOpen] = useState(false);
   const statusMenuRef = useRef<HTMLDivElement>(null);
   const platformStyle = PLATFORMS.find(p => p.name === problem.platform) || PLATFORMS[3];
@@ -42,7 +44,12 @@ export const ProblemCard = ({ problem, onUpdateStatus, onDelete }: ProblemCardPr
   const currentStatus = statusConfig[problem.status] || statusConfig['Todo'];
   const balloonColor = problem.balloonColor || BALLOON_COLORS[problem.difficulty as keyof typeof BALLOON_COLORS] || '#999';
 
+  const isOwner = !!(currentUserId && problem.createdBy && problem.createdBy === currentUserId);
+  const isAssignee = !!(currentUserId && problem.assignees?.includes(currentUserId));
+  const canEdit = isOwner || isAssignee;
+
   const handleStatusChange = (newStatus: string) => {
+    if (!canEdit) return;
     onUpdateStatus(problem.id, newStatus);
     setIsStatusOpen(false);
   };
@@ -79,15 +86,19 @@ export const ProblemCard = ({ problem, onUpdateStatus, onDelete }: ProblemCardPr
         </div>
         
         <div className="relative z-20" ref={statusMenuRef}>
-          <button 
-            onClick={() => setIsStatusOpen(!isStatusOpen)}
-            className={`flex items-center justify-center gap-1 px-2 py-1.5 rounded-xl transition-all font-bold text-xs ${currentStatus.bg} ${currentStatus.color} min-w-[70px]`}
-          >
+          {canEdit ? (
+            <button 
+              onClick={() => setIsStatusOpen(!isStatusOpen)}
+              className={`flex items-center justify-center gap-1 px-2 py-1.5 rounded-xl transition-all font-bold text-xs ${currentStatus.bg} ${currentStatus.color} min-w-[70px]`}
+            >
             {currentStatus.label}
             <ChevronDown size={12} className={`transition-transform ${isStatusOpen ? 'rotate-180' : ''}`} />
-          </button>
+            </button>
+          ) : (
+            <div className={`flex items-center justify-center gap-1 px-2 py-1.5 rounded-xl font-bold text-xs ${currentStatus.bg} ${currentStatus.color} min-w-[70px]`}>{currentStatus.label}</div>
+          )}
 
-          {isStatusOpen && (
+          {isStatusOpen && canEdit && (
             <div className="absolute right-0 mt-1 w-32 bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden z-[100] animate-in slide-in-from-top-2 duration-200">
               {Object.entries(statusConfig).map(([status, config]) => (
                 <button
@@ -111,26 +122,43 @@ export const ProblemCard = ({ problem, onUpdateStatus, onDelete }: ProblemCardPr
         <div className="flex -space-x-2">
            {problem.assignees?.map((userId: string, idx: number) => {
              const member = TEAM_MEMBERS.find(m => m.id === userId);
-             return member ? (
-               <div key={idx} className={`w-6 h-6 rounded-full border-2 border-white flex items-center justify-center text-[10px] text-white ${member.avatar}`}>
-                 {member.name[0]}
-               </div>
-             ) : null;
+             if (member) {
+               return (
+                 <div key={idx} className={`w-6 h-6 rounded-full border-2 border-white flex items-center justify-center text-[10px] text-white ${member.avatar}`}>
+                   {member.name[0]}
+                 </div>
+               );
+             }
+             // If the assignee is current user (by UID) show a 'You' badge
+             if (currentUserId && userId === currentUserId) {
+               return (
+                 <div key={idx} className={`w-6 h-6 rounded-full border-2 border-white flex items-center justify-center text-[10px] text-white bg-blue-500`}>
+                   Y
+                 </div>
+               );
+             }
+             return null;
            })}
-           <button className="w-6 h-6 rounded-full border-2 border-dashed border-gray-300 flex items-center justify-center text-gray-400 bg-gray-50 hover:bg-gray-100 text-[10px]">
-             +
-           </button>
+           {currentUserId && !isAssignee ? (
+             <button onClick={() => onAssignToMe?.(problem.id)} className="w-6 h-6 rounded-full border-2 border-dashed border-gray-300 flex items-center justify-center text-gray-400 bg-gray-50 hover:bg-gray-100 text-[10px]">
+               +
+             </button>
+           ) : (
+             <div className="w-6 h-6 rounded-full border-2 border-dashed border-gray-100 flex items-center justify-center text-gray-300 bg-gray-50 text-[10px]">+</div>
+           )}
         </div>
         
-        <div className="flex gap-2">
+          <div className="flex gap-2">
           {problem.url && (
             <a href={problem.url} target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-blue-500">
               <ExternalLink size={16} />
             </a>
           )}
-          <button onClick={() => onDelete(problem.id)} className="text-gray-400 hover:text-red-500">
-            <Trash2 size={16} />
-          </button>
+          {canEdit && (
+            <button onClick={() => onDelete(problem.id)} className="text-gray-400 hover:text-red-500">
+              <Trash2 size={16} />
+            </button>
+          )}
         </div>
       </div>
     </div>

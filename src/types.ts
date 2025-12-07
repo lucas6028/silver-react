@@ -8,5 +8,6 @@ export interface Problem {
   assignees: string[];
   url?: string;
   createdAt?: any;
+  createdBy?: string;
   balloonColor?: string;
 }

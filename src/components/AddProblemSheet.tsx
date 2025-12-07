@@ -1,20 +1,21 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { X } from 'lucide-react';
 // Remove direct dependency on firestore sentinel here; App will set timestamps.
-import { PLATFORMS, TAGS } from '../constants';
+import { PLATFORMS, TAGS, TEAM_MEMBERS } from '../constants';
 import type { Problem } from '../types';
 
 interface AddProblemSheetProps {
   isOpen: boolean;
   onClose: () => void;
   onAdd: (problemData: Omit<Problem, 'id'>) => void;
+  currentUserId?: string | null;
 }
 
 interface ToggleTagFn {
   (tagName: string): void;
 }
 
-export const AddProblemSheet = ({ isOpen, onClose, onAdd }: AddProblemSheetProps) => {
+export const AddProblemSheet = ({ isOpen, onClose, onAdd, currentUserId }: AddProblemSheetProps) => {
   const [url, setUrl] = useState('');
   const [isParsing, setIsParsing] = useState(false);
   type ProblemForm = {
@@ -31,8 +32,22 @@ export const AddProblemSheet = ({ isOpen, onClose, onAdd }: AddProblemSheetProps
     platform: 'Codeforces',
     difficulty: 'Easy',
     tags: [],
-    assignees: ['1']
+    assignees: currentUserId ? [currentUserId] : []
   });
+
+  useEffect(() => {
+    if (isOpen) {
+      setForm({
+        title: '',
+        platform: 'Codeforces',
+        difficulty: 'Easy',
+        tags: [],
+        assignees: currentUserId ? [currentUserId] : []
+      });
+      setUrl('');
+      setIsParsing(false);
+    }
+  }, [isOpen, currentUserId]);
 
   const handleUrlPaste = (e: React.ChangeEvent<HTMLInputElement>): void => {
     const val = e.target.value;
@@ -54,7 +69,7 @@ export const AddProblemSheet = ({ isOpen, onClose, onAdd }: AddProblemSheetProps
             detectedTitle = 'ABC 321 - D';
         }
 
-        setForm((prev: typeof form) => ({
+        setForm((prev) => ({
           ...prev,
           platform: detectedPlatform,
           title: detectedTitle || prev.title,
@@ -71,6 +86,15 @@ export const AddProblemSheet = ({ isOpen, onClose, onAdd }: AddProblemSheetProps
       tags: prev.tags.includes(tagName)
         ? prev.tags.filter((t) => t !== tagName)
         : [...prev.tags, tagName],
+    }));
+  };
+
+  const toggleAssignee = (assigneeId: string) => {
+    setForm((prev) => ({
+      ...prev,
+      assignees: prev.assignees.includes(assigneeId)
+        ? prev.assignees.filter((id) => id !== assigneeId)
+        : [...prev.assignees, assigneeId],
     }));
   };
 
@@ -155,6 +179,25 @@ export const AddProblemSheet = ({ isOpen, onClose, onAdd }: AddProblemSheetProps
                   }`}
                 >
                   {tag.name}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div>
+            <label className="text-xs font-medium text-gray-500 mb-2 block">Assignees</label>
+            <div className="flex flex-wrap gap-2">
+              {TEAM_MEMBERS.map(member => (
+                <button
+                  key={member.id}
+                  onClick={() => toggleAssignee(member.id)}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
+                    form.assignees.includes(member.id)
+                      ? 'bg-green-100 text-green-800 ring-2 ring-green-500 ring-offset-1'
+                      : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                  }`}
+                >
+                  {member.name}
                 </button>
               ))}
             </div>

@@ -28,7 +28,9 @@ import {
   updateDoc, 
   deleteDoc,
   serverTimestamp,
-  query
+  arrayUnion,
+  query,
+  where
 } from 'firebase/firestore';
 
 import { 
@@ -81,7 +83,12 @@ export default function Silver() {
   useEffect(() => {
     if (!user) return;
     
-    const q = query(collection(db, 'artifacts', appId, 'public', 'data', 'problems'));
+    // Query only documents where user is in assignees array
+    // (creator is automatically added to assignees on creation)
+    const q = query(
+      collection(db, 'artifacts', appId, 'public', 'data', 'problems'),
+      where('assignees', 'array-contains', user.uid)
+    );
     
     const unsubscribe = onSnapshot(q, (snapshot) => {
       if (snapshot.empty) {
@@ -106,15 +113,20 @@ export default function Silver() {
   // --- Actions ---
   const handleAddProblem = async (problemData: Omit<Problem, 'id'>) => {
     if (!user) return;
+    // Always include creator in assignees array for security rules compatibility
+    const assignees = problemData.assignees && problemData.assignees.length > 0 
+      ? [...new Set([user.uid, ...problemData.assignees])] // Ensure creator is always included
+      : [user.uid];
+    
     try {
       // Optimistic UI: add a local placeholder so users see the new item immediately
       const localId = `local-${Date.now()}`;
-      const optimisticProblem: Problem = { id: localId, ...problemData } as Problem;
+      const optimisticProblem: Problem = { id: localId, ...problemData, assignees, createdBy: user.uid } as Problem;
       setProblems(prev => [optimisticProblem, ...prev]);
 
       await addDoc(
         collection(db, 'artifacts', appId, 'public', 'data', 'problems'),
-        { ...problemData, createdAt: problemData.createdAt || serverTimestamp() }
+        { ...problemData, assignees, createdAt: problemData.createdAt || serverTimestamp(), createdBy: user.uid }
       );
 
       // Once Firestore returns the doc id we can remove the optimistic local placeholder
@@ -122,7 +134,7 @@ export default function Silver() {
       // The new doc will be picked up by the realtime listener and appear in the list
     } catch (e) {
       console.error("Add failed", e);
-      const newProblem: Problem = { id: `local-${Date.now()}`, ...problemData, createdAt: { seconds: Date.now() / 1000 } };
+      const newProblem: Problem = { id: `local-${Date.now()}`, ...problemData, assignees, createdAt: { seconds: Date.now() / 1000 }, createdBy: user.uid };
       setProblems(prev => [newProblem, ...prev]);
     }
   };
@@ -179,9 +191,32 @@ export default function Silver() {
        return;
     }
      if (!user) return;
+     const problemToDelete = problems.find(p => p.id === id);
+     if (!problemToDelete) return;
+     const isOwner = problemToDelete.createdBy === user.uid;
+     const isAssignee = problemToDelete.assignees?.includes(user.uid);
+     if (!isOwner && !isAssignee) {
+       alert('You are not the owner or assignee of this problem.');
+       return;
+     }
      if (confirm('Delete this problem?')) {
        await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'problems', id));
      }
+  };
+
+  const handleAssignToMe = async (id: string): Promise<void> => {
+    if (!user) return;
+    if (id.startsWith('local-')) {
+      setProblems(prev => prev.map(p => p.id === id ? { ...p, assignees: Array.from(new Set([...(p.assignees || []), user.uid])) } : p));
+      return;
+    }
+    try {
+      await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'problems', id), {
+        assignees: arrayUnion(user.uid)
+      });
+    } catch (e) {
+      console.error(e);
+    }
   };
 
   const handleGoogleSignIn = async () => {
@@ -224,7 +259,7 @@ export default function Silver() {
   }, [problems]);
 
   const filteredProblems = problems.filter(p => {
-    if (filter === 'All') return true;
+    if (filter === 'All') return !!user && (p.createdBy === user.uid || p.assignees?.includes(user.uid));
     if (filter === 'Done') return p.status === 'Done';
     if (filter === 'Active') return p.status === 'InProgress' || p.status === 'Review';
     return true;
@@ -375,6 +410,8 @@ export default function Silver() {
                     problem={problem} 
                     onUpdateStatus={handleUpdateStatus}
                     onDelete={handleDelete}
+                    currentUserId={user?.uid}
+                    onAssignToMe={handleAssignToMe}
                   />
                 ))}
                 
@@ -480,6 +517,7 @@ export default function Silver() {
           isOpen={isAddOpen} 
           onClose={() => setIsAddOpen(false)} 
           onAdd={handleAddProblem}
+          currentUserId={user?.uid}
         />
 
         <SignInModal 
