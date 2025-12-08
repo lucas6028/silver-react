@@ -1,12 +1,12 @@
 import { useState, useMemo } from 'react';
-import { 
-  Plus, 
-  LayoutDashboard, 
-  ListTodo, 
-  Users, 
-  Search, 
-  CheckCircle2, 
-  Medal, 
+import {
+  Plus,
+  LayoutDashboard,
+  ListTodo,
+  Users,
+  Search,
+  CheckCircle2,
+  Medal,
   Calendar,
   BarChart3,
   Trophy
@@ -17,9 +17,9 @@ import { useFirestoreProblems } from './hooks/useFirestoreProblems';
 import { useTeams } from './hooks/useTeams';
 import { chooseColorForProblem } from './lib/utils';
 
-import { 
-  UPCOMING_CONTESTS, 
-  BALLOON_COLORS, 
+import {
+  UPCOMING_CONTESTS,
+  BALLOON_COLORS,
   ALL_BALLOON_COLORS
 } from './constants';
 import useCodeforcesContests from './hooks/useCodeforcesContests';
@@ -58,7 +58,7 @@ export default function Silver() {
   const handleAddProblem = async (problemData: Omit<Problem, 'id'>) => {
     if (!user) return;
     // Always include creator in assignees array for security rules compatibility
-    const assignees = problemData.assignees && problemData.assignees.length > 0 
+    const assignees = problemData.assignees && problemData.assignees.length > 0
       ? [...new Set([user.uid, ...problemData.assignees])] // Ensure creator is always included
       : [user.uid];
     await addProblem({ ...problemData, assignees, createdBy: user.uid });
@@ -92,12 +92,12 @@ export default function Silver() {
   const spawnFlyingBalloons = (color: string, amount = 4) => {
     const now = Date.now();
     const newBalloons: FlyingBalloon[] = Array.from({ length: amount }).map((_, idx) => ({
-      id: `${now}-${Math.round(Math.random()*1e6)}-${idx}`,
+      id: `${now}-${Math.round(Math.random() * 1e6)}-${idx}`,
       color,
       left: Math.random() * 80 + 10,
       size: 28 + Math.random() * 24,
       duration: 4 + Math.random() * 3,
-      delay: Math.random()*0.6
+      delay: Math.random() * 0.6
     }));
     setFlyingBalloons(prev => [...prev, ...newBalloons]);
   };
@@ -108,23 +108,23 @@ export default function Silver() {
 
   const handleDelete = async (id: string): Promise<void> => {
     if (id.startsWith('local-')) {
-       if (confirm('Delete this local (unsaved) problem?')) {
-         setProblems((prev) => prev.filter((p) => p.id !== id));
-       }
-       return;
+      if (confirm('Delete this local (unsaved) problem?')) {
+        setProblems((prev) => prev.filter((p) => p.id !== id));
+      }
+      return;
     }
-     if (!user) return;
-     const problemToDelete = problems.find(p => p.id === id);
-     if (!problemToDelete) return;
-     const isOwner = problemToDelete.createdBy === user.uid;
-     const isAssignee = problemToDelete.assignees?.includes(user.uid);
-     if (!isOwner && !isAssignee) {
-       alert('You are not the owner or assignee of this problem.');
-       return;
-     }
-     if (confirm('Delete this problem?')) {
-       await deleteProblem(id);
-     }
+    if (!user) return;
+    const problemToDelete = problems.find(p => p.id === id);
+    if (!problemToDelete) return;
+    const isOwner = problemToDelete.createdBy === user.uid;
+    const isAssignee = problemToDelete.assignees?.includes(user.uid);
+    if (!isOwner && !isAssignee) {
+      alert('You are not the owner or assignee of this problem.');
+      return;
+    }
+    if (confirm('Delete this problem?')) {
+      await deleteProblem(id);
+    }
   };
 
   const handleAssignToUser = async (problemId: string, userId: string): Promise<void> => {
@@ -180,7 +180,7 @@ export default function Silver() {
     const completed = problems.filter(p => p.status === 'Done').length;
     const inProgress = problems.filter(p => p.status === 'InProgress' || p.status === 'Review').length;
     const pending = problems.filter(p => p.status === 'Todo').length;
-    
+
     const tags: { [key: string]: number } = {};
     problems.forEach(p => {
       p.tags?.forEach((t: string) => tags[t] = (tags[t] || 0) + 1);
@@ -202,7 +202,7 @@ export default function Silver() {
 
   const handleTouchEnd = () => {
     if (!touchStart || !touchEnd) return;
-    
+
     const distance = touchStart - touchEnd;
     const isLeftSwipe = distance > 50;
     const isRightSwipe = distance < -50;
@@ -211,7 +211,7 @@ export default function Silver() {
       setCurrentTeamIndex(prev => prev + 1);
       setShowTeamCode(false);
     }
-    
+
     if (isRightSwipe && currentTeamIndex > 0) {
       setCurrentTeamIndex(prev => prev - 1);
       setShowTeamCode(false);
@@ -232,9 +232,9 @@ export default function Silver() {
 
   const renderDashboard = () => (
     <div className="space-y-6 animate-in fade-in duration-500">
-      
+
       {/* Contest Countdown Card */}
-      <div className="bg-slate-900 text-white rounded-2xl p-5 shadow-lg relative overflow-hidden">
+      <div className="bg-slate-900 text-white rounded-2xl p-5 shadow-md relative overflow-hidden">
         <div className="absolute right-0 top-0 w-32 h-32 bg-blue-500 opacity-20 blur-3xl rounded-full"></div>
         <div className="flex justify-between items-start relative z-10">
           <div>
@@ -246,23 +246,27 @@ export default function Silver() {
             <div className="text-sm text-slate-400">{(cfContests && cfContests.length > 0 ? cfContests[0].platform : UPCOMING_CONTESTS[0].platform)}</div>
           </div>
           <div className="bg-slate-800 p-3 rounded-xl text-center min-w-[80px] border border-slate-700">
-            <div className="text-lg font-mono font-bold text-blue-400">{(cfContests && cfContests.length > 0 ? cfContests[0].time : UPCOMING_CONTESTS[0].time)}</div>
-            <div className="text-[10px] text-slate-500 uppercase">Starts In</div>
+            <div className="text-xl font-mono font-bold text-yellow-400">{(cfContests && cfContests.length > 0 ? cfContests[0].time : UPCOMING_CONTESTS[0].time)}</div>
+            <div className="text-[10px] text-slate-400 uppercase font-medium">Starts In</div>
           </div>
         </div>
       </div>
 
       {/* Stats Row */}
       <div className="grid grid-cols-2 gap-4">
-        <div className="bg-gradient-to-br from-blue-500 to-blue-600 rounded-2xl p-4 text-white shadow-lg shadow-blue-200">
-          <div className="flex items-center gap-2 mb-2 opacity-90">
+        <div className="bg-white rounded-2xl p-4 border border-gray-100 shadow-sm relative overflow-hidden">
+          <div className="flex items-center gap-2 mb-2 text-blue-500 relative z-10">
             <CheckCircle2 size={18} />
-            <span className="text-xs font-medium uppercase tracking-wider">Accepted</span>
+            <span className="text-xs font-medium uppercase tracking-wider text-gray-500">Accepted</span>
           </div>
-          <div className="text-3xl font-bold">{stats.completed}</div>
-          <div className="text-xs opacity-75 mt-1">Problems Solved</div>
+          <div className="relative z-10">
+            <div className="text-3xl font-bold text-gray-900">{stats.completed}</div>
+            <div className="text-xs text-gray-400 mt-1">Problems Solved</div>
+          </div>
+          {/* Decorative accent */}
+          <div className="absolute -right-4 -bottom-4 w-24 h-24 bg-blue-100 rounded-full opacity-30"></div>
         </div>
-        
+
         <div className="bg-white rounded-2xl p-4 border border-gray-100 shadow-sm relative overflow-hidden">
           <div className="flex items-center gap-2 mb-2 text-amber-500 relative z-10">
             <Medal size={18} />
@@ -274,61 +278,66 @@ export default function Silver() {
           </div>
           {/* Decorative Balloons */}
           <div className="absolute -right-2 top-8 flex gap-1 opacity-20">
-             <Balloon color="#F44336" size={40} />
-             <Balloon color="#2196F3" size={40} className="-ml-4 mt-2" />
+            <Balloon color="#F44336" size={40} />
+            <Balloon color="#2196F3" size={40} className="-ml-4 mt-2" />
           </div>
         </div>
       </div>
 
       {/* Balloon Collection Shelf */}
       {stats.completed > 0 && (
-        <div className="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm">
-          <h3 className="font-bold text-gray-900 mb-4 flex items-center gap-2">
-            My Collection
-          </h3>
+        <div className="bg-gradient-to-br from-cyan-50/50 to-white rounded-2xl p-5 border border-cyan-100 shadow-sm">
+          <div className="flex justify-between items-center mb-4">
+            <h3 className="font-bold text-gray-900 flex items-center gap-2">
+              My Collection
+            </h3>
+            <button className="text-xs text-blue-600 hover:text-blue-700 font-medium transition-colors">
+              View All
+            </button>
+          </div>
           <div className="flex gap-2 overflow-x-auto pb-2 no-scrollbar">
             {problems.filter(p => p.status === 'Done').map((p, idx) => (
-               <div key={idx} className="flex flex-col items-center gap-1 min-w-[50px]">
-                 <Balloon color={p.balloonColor || BALLOON_COLORS[p.difficulty as keyof typeof BALLOON_COLORS] || '#4CAF50'} size={32} />
-                 <span className="text-[9px] text-gray-400 font-mono truncate w-full text-center">{p.platform[0]}</span>
-               </div>
+              <div key={idx} className="flex flex-col items-center gap-1 min-w-[50px]">
+                <Balloon color={p.balloonColor || BALLOON_COLORS[p.difficulty as keyof typeof BALLOON_COLORS] || '#4CAF50'} size={32} />
+                <span className="text-[9px] text-gray-400 font-mono truncate w-full text-center">{p.platform[0]}</span>
+              </div>
             ))}
           </div>
         </div>
       )}
 
       {/* Topic Distribution */}
-      <div className="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm">
+      <div className="bg-gradient-to-br from-violet-50/50 to-white rounded-2xl p-5 border border-violet-100 shadow-sm">
         <h3 className="font-bold text-gray-900 mb-4 flex items-center gap-2">
-          <BarChart3 size={20} className="text-blue-500"/>
+          <BarChart3 size={20} className="text-blue-500" />
           Topic Coverage
         </h3>
         <div className="space-y-4">
           {Object.entries(stats.tags)
-            .sort(([,a], [,b]) => b - a)
+            .sort(([, a], [, b]) => b - a)
             .slice(0, 4)
             .map(([tag, count]) => (
-            <div key={tag}>
-              <div className="flex justify-between text-xs mb-1">
-                <span className="font-medium text-gray-700">{tag}</span>
-                <span className="text-gray-500">{count} AC</span>
+              <div key={tag}>
+                <div className="flex justify-between text-xs mb-1">
+                  <span className="font-medium text-gray-700">{tag}</span>
+                  <span className="text-gray-500">{count} AC</span>
+                </div>
+                <ProgressBar progress={(count / stats.total) * 100} color={
+                  tag === 'DP' ? 'bg-purple-500' :
+                    tag === 'Graph' ? 'bg-blue-500' : 'bg-green-500'
+                } />
               </div>
-              <ProgressBar progress={(count / stats.total) * 100} color={
-                tag === 'DP' ? 'bg-purple-500' : 
-                tag === 'Graph' ? 'bg-blue-500' : 'bg-green-500'
-              } />
-            </div>
-          ))}
+            ))}
         </div>
       </div>
     </div>
   );
 
   return (
-    <div className="bg-gray-50 min-h-screen text-gray-900 font-sans selection:bg-blue-100">
+    <div className="bg-slate-100 min-h-screen text-gray-900 font-sans selection:bg-blue-100">
       {/* Mobile Wrapper */}
-      <div className="max-w-md mx-auto min-h-screen bg-gray-50 relative pb-24 shadow-2xl">
-        
+      <div className="max-w-md mx-auto min-h-screen bg-slate-100 relative pb-24 shadow-2xl">
+
         {/* Top App Bar */}
         <header className="sticky top-0 z-30 bg-white/80 backdrop-blur-md px-6 py-4 flex justify-between items-center border-b border-gray-100">
           <div>
@@ -343,7 +352,7 @@ export default function Silver() {
             {user ? (
               <UserMenu user={user} onSignOut={handleSignOut} />
             ) : (
-              <button 
+              <button
                 onClick={() => setIsSignInOpen(true)}
                 className="px-4 py-2 rounded-full bg-blue-500 text-white text-sm font-medium hover:bg-blue-600 transition-colors"
               >
@@ -357,7 +366,7 @@ export default function Silver() {
         {/* Content Area */}
         <main className="p-4">
           {view === 'dashboard' && renderDashboard()}
-          
+
           {view === 'problems' && (
             <div className="space-y-4 animate-in fade-in duration-300">
               <div className="flex gap-2 overflow-x-auto pb-2 no-scrollbar">
@@ -365,12 +374,12 @@ export default function Silver() {
                 <Chip label="Active" active={filter === 'Active'} onClick={() => setFilter('Active')} />
                 <Chip label="Accepted" active={filter === 'Done'} onClick={() => setFilter('Done')} />
               </div>
-              
+
               <div className="space-y-1">
                 {filteredProblems.map(problem => (
-                  <ProblemCard 
-                    key={problem.id} 
-                    problem={problem} 
+                  <ProblemCard
+                    key={problem.id}
+                    problem={problem}
                     onUpdateStatus={handleUpdateStatus}
                     onDelete={handleDelete}
                     currentUserId={user?.uid}
@@ -378,7 +387,7 @@ export default function Silver() {
                     members={currentTeam?.members ?? null}
                   />
                 ))}
-                
+
                 {filteredProblems.length === 0 && (
                   <div className="flex flex-col items-center justify-center py-20 text-gray-400">
                     <ListTodo size={48} strokeWidth={1} className="mb-4 opacity-50" />
@@ -464,11 +473,10 @@ export default function Silver() {
                               setCurrentTeamIndex(idx);
                               setShowTeamCode(false);
                             }}
-                            className={`h-1.5 rounded-full transition-all ${
-                              idx === currentTeamIndex 
-                                ? 'w-6 bg-violet-600' 
-                                : 'w-1.5 bg-violet-300 hover:bg-violet-400'
-                            }`}
+                            className={`h-1.5 rounded-full transition-all ${idx === currentTeamIndex
+                              ? 'w-6 bg-violet-600'
+                              : 'w-1.5 bg-violet-300 hover:bg-violet-400'
+                              }`}
                           />
                         ))}
                       </div>
@@ -482,13 +490,13 @@ export default function Silver() {
                         Team Members
                       </h3>
                     </div>
-                    
+
                     <div className="divide-y divide-gray-50">
                       {currentTeam?.members.map((member) => {
                         const memberProblems = problems.filter(p => p.assignees?.includes(member.uid));
                         const solved = memberProblems.filter(p => p.status === 'Done').length;
                         const total = memberProblems.length;
-                        
+
                         return (
                           <div key={member.uid} className="p-4 flex items-center justify-between">
                             <div className="flex items-center gap-3">
@@ -509,7 +517,7 @@ export default function Silver() {
                                 <div className="text-[10px] text-gray-400">{member.role || 'Member'}</div>
                               </div>
                             </div>
-                            
+
                             <div className="text-right">
                               <div className="font-bold text-blue-600 text-sm">
                                 {solved}/{total} <span className="text-[10px] text-gray-400 font-normal">AC</span>
@@ -551,7 +559,7 @@ export default function Silver() {
 
         {/* FAB (Floating Action Button) */}
         {view === 'problems' && (
-          <button 
+          <button
             onClick={() => setIsAddOpen(true)}
             className="fixed bottom-24 right-6 w-14 h-14 bg-blue-600 text-white rounded-2xl shadow-lg shadow-blue-300 flex items-center justify-center hover:scale-105 active:scale-95 transition-all z-40"
           >
@@ -562,21 +570,21 @@ export default function Silver() {
         {/* Bottom Navigation */}
         <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-100 px-6 py-2 pb-6 z-40 max-w-md mx-auto">
           <div className="flex justify-around items-center">
-            <button 
+            <button
               onClick={() => setView('dashboard')}
               className={`flex flex-col items-center gap-1 p-2 rounded-xl transition-colors ${view === 'dashboard' ? 'text-blue-600' : 'text-gray-400 hover:text-gray-600'}`}
             >
               <LayoutDashboard size={24} strokeWidth={view === 'dashboard' ? 2.5 : 2} />
               <span className="text-[10px] font-medium">Home</span>
             </button>
-            <button 
+            <button
               onClick={() => setView('problems')}
               className={`flex flex-col items-center gap-1 p-2 rounded-xl transition-colors ${view === 'problems' ? 'text-blue-600' : 'text-gray-400 hover:text-gray-600'}`}
             >
               <ListTodo size={24} strokeWidth={view === 'problems' ? 2.5 : 2} />
               <span className="text-[10px] font-medium">Problems</span>
             </button>
-            <button 
+            <button
               onClick={() => setView('team')}
               className={`flex flex-col items-center gap-1 p-2 rounded-xl transition-colors ${view === 'team' ? 'text-blue-600' : 'text-gray-400 hover:text-gray-600'}`}
             >
@@ -587,15 +595,15 @@ export default function Silver() {
         </nav>
 
         {/* Modals */}
-        <AddProblemSheet 
-          isOpen={isAddOpen} 
-          onClose={() => setIsAddOpen(false)} 
+        <AddProblemSheet
+          isOpen={isAddOpen}
+          onClose={() => setIsAddOpen(false)}
           onAdd={handleAddProblem}
           currentUserId={user?.uid}
           members={currentTeam?.members ?? null}
         />
 
-        <SignInModal 
+        <SignInModal
           isOpen={isSignInOpen}
           onClose={() => setIsSignInOpen(false)}
           onGoogleSignIn={handleGoogleSignIn}
@@ -608,9 +616,9 @@ export default function Silver() {
           onCreateTeam={handleCreateTeam}
           onJoinTeam={handleJoinTeam}
         />
-        
+
         <FlyingBalloons balloons={flyingBalloons} onComplete={handleFlyingBalloonComplete} />
-        
+
       </div>
     </div>
   );
