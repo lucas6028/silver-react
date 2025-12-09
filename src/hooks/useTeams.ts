@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { db, appId } from '../lib/firebase';
+import { db } from '../lib/firebase';
 import { doc, onSnapshot, addDoc, collection, query, where, getDocs, updateDoc, deleteDoc, arrayUnion } from 'firebase/firestore';
 import type { Team, TeamMember, UserProfile } from '../types';
 import type { User } from 'firebase/auth';
@@ -17,7 +17,7 @@ export const useTeams = (_user: User | null, userProfile: UserProfile | null) =>
     const unsubscribes: (() => void)[] = [];
 
     userProfile.teamIds.forEach((teamId) => {
-      const teamDocRef = doc(db, 'artifacts', appId, 'public', 'data', 'teams', teamId);
+      const teamDocRef = doc(db, 'teams', teamId);
       const unsubscribe = onSnapshot(teamDocRef, (docSnap) => {
         if (docSnap.exists()) {
           const teamData = { id: docSnap.id, ...docSnap.data() } as Team;
@@ -59,8 +59,8 @@ export const useTeams = (_user: User | null, userProfile: UserProfile | null) =>
     } as Omit<Team, 'id'>;
 
     try {
-      const teamRef = await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'teams'), newTeam);
-      await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'users', user.uid), { teamIds: arrayUnion(teamRef.id) });
+      const teamRef = await addDoc(collection(db, 'teams'), newTeam);
+      await updateDoc(doc(db, 'users', user.uid), { teamIds: arrayUnion(teamRef.id) });
     } catch (error) {
       console.error('Error creating team:', error);
       throw new Error('Failed to create team.');
@@ -69,7 +69,7 @@ export const useTeams = (_user: User | null, userProfile: UserProfile | null) =>
 
   const joinTeam = async (teamCode: string, user: User) => {
     try {
-      const teamsRef = collection(db, 'artifacts', appId, 'public', 'data', 'teams');
+      const teamsRef = collection(db, 'teams');
       const q = query(teamsRef, where('code', '==', teamCode));
       const snapshot = await getDocs(q);
 
@@ -89,11 +89,11 @@ export const useTeams = (_user: User | null, userProfile: UserProfile | null) =>
         role: 'Member'
       };
 
-      await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'teams', teamDoc.id), {
+      await updateDoc(doc(db, 'teams', teamDoc.id), {
         members: arrayUnion(teamMember)
       });
 
-      await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'users', user.uid), {
+      await updateDoc(doc(db, 'users', user.uid), {
         teamIds: arrayUnion(teamDoc.id)
       });
     } catch (err) {
@@ -110,15 +110,15 @@ export const useTeams = (_user: User | null, userProfile: UserProfile | null) =>
     const updatedMembers = currentTeam.members.filter(m => m.uid !== user.uid);
     try {
       if (updatedMembers.length === 0) {
-        await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'teams', teamId));
+        await deleteDoc(doc(db, 'teams', teamId));
       } else {
-        await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'teams', teamId), {
+        await updateDoc(doc(db, 'teams', teamId), {
           members: updatedMembers
         });
       }
 
       const updatedTeamIds = (userProfile.teamIds || []).filter(id => id !== teamId);
-      await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'users', user.uid), {
+      await updateDoc(doc(db, 'users', user.uid), {
         teamIds: updatedTeamIds
       });
     } catch (err) {

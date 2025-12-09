@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { auth, db, appId } from '../lib/firebase';
+import { auth, db } from '../lib/firebase';
 import { onAuthStateChanged, signInWithPopup, GoogleAuthProvider, GithubAuthProvider, signOut } from 'firebase/auth';
 import { doc, onSnapshot, setDoc } from 'firebase/firestore';
 import type { User } from 'firebase/auth';
@@ -21,7 +21,7 @@ export const useAuthProfile = () => {
 
   useEffect(() => {
     if (!user) return;
-    const userDocRef = doc(db, 'artifacts', appId, 'public', 'data', 'users', user.uid);
+    const userDocRef = doc(db, 'users', user.uid);
 
     const unsubscribe = onSnapshot(userDocRef, async (docSnap) => {
       if (docSnap.exists()) {

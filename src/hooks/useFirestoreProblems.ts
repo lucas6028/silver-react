@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { db, appId } from '../lib/firebase';
+import { db } from '../lib/firebase';
 import { collection, addDoc, onSnapshot, doc, updateDoc, deleteDoc, serverTimestamp, arrayUnion, arrayRemove, query, where } from 'firebase/firestore';
 import type { Problem } from '../types';
 import type { User } from 'firebase/auth';
@@ -11,7 +11,7 @@ export const useFirestoreProblems = (user: User | null) => {
     if (!user) return;
 
     const q = query(
-      collection(db, 'artifacts', appId, 'public', 'data', 'problems'),
+      collection(db, 'problems'),
       where('assignees', 'array-contains', user.uid)
     );
 
@@ -43,7 +43,7 @@ export const useFirestoreProblems = (user: User | null) => {
       setProblems(prev => [optimisticProblem, ...prev]);
 
       await addDoc(
-        collection(db, 'artifacts', appId, 'public', 'data', 'problems'),
+        collection(db, 'problems'),
         { ...problemData, assignees, createdAt: problemData.createdAt || serverTimestamp(), createdBy: user.uid }
       );
 
@@ -65,7 +65,7 @@ export const useFirestoreProblems = (user: User | null) => {
     if (!user) return;
 
     try {
-      await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'problems', id), updateData);
+      await updateDoc(doc(db, 'problems', id), updateData);
     } catch (e) { console.error(e); }
   };
 
@@ -73,7 +73,7 @@ export const useFirestoreProblems = (user: User | null) => {
     if (id.startsWith('local-')) return setProblems(prev => prev.filter(p => p.id !== id));
     if (!user) return;
     try {
-      await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'problems', id));
+      await deleteDoc(doc(db, 'problems', id));
     } catch (e) { console.error(e); }
   };
 
@@ -84,7 +84,7 @@ export const useFirestoreProblems = (user: User | null) => {
       return;
     }
     try {
-      await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'problems', id), {
+      await updateDoc(doc(db, 'problems', id), {
         assignees: arrayUnion(user.uid)
       });
     } catch (e) { console.error(e); }
@@ -100,9 +100,9 @@ export const useFirestoreProblems = (user: User | null) => {
 
     try {
       if (assign) {
-        await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'problems', id), { assignees: arrayUnion(uid) });
+        await updateDoc(doc(db, 'problems', id), { assignees: arrayUnion(uid) });
       } else {
-        await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'problems', id), { assignees: arrayRemove(uid) });
+        await updateDoc(doc(db, 'problems', id), { assignees: arrayRemove(uid) });
       }
     } catch (e) { console.error(e); }
   };
