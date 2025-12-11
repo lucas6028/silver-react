@@ -14,6 +14,7 @@ import {
 import { useAuthProfile } from './hooks/useAuthProfile';
 import { useFirestoreProblems } from './hooks/useFirestoreProblems';
 import { useTeams } from './hooks/useTeams';
+import { useNotifications } from './hooks/useNotifications';
 import { chooseColorForProblem } from './lib/utils';
 
 import {
@@ -30,22 +31,25 @@ import { ProblemCard } from './components/ProblemCard';
 import { AddProblemSheet } from './components/AddProblemSheet';
 import { EditProblemModal } from './components/EditProblemModal';
 import { SignInModal } from './components/SignInModal';
-import { UserMenu } from './components/UserMenu';
 import { FlyingBalloons } from './components/FlyingBalloons';
 import { TeamModal } from './components/TeamModal';
+import { Header } from './components/Header';
+import { NotificationsScreen } from './components/NotificationsScreen';
 import type { FlyingBalloon } from './components/FlyingBalloons';
-import type { Problem } from './types';
+import type { Problem, Notification } from './types';
 export default function Silver() {
   const { user, userProfile, signInWithGoogle, signInWithGithub, signOutUser } = useAuthProfile();
   const { teams, createTeam, joinTeam, leaveTeam } = useTeams(user, userProfile);
+  const { notifications, unreadCount, createNotification, markAsRead, markAllAsRead } = useNotifications(user);
   const [currentTeamIndex, setCurrentTeamIndex] = useState(0);
   const [view, setView] = useState('problems');
-  const { problems, addProblem, updateStatus: updateProblemStatus, updateProblem, deleteProblem, toggleAssignee, setProblems } = useFirestoreProblems(user);
+  const { problems, addProblem, updateStatus: updateProblemStatus, updateProblem, deleteProblem, toggleAssignee, setProblems } = useFirestoreProblems(user, createNotification);
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [editingProblem, setEditingProblem] = useState<Problem | null>(null);
   const [isSignInOpen, setIsSignInOpen] = useState(false);
   const [isTeamModalOpen, setIsTeamModalOpen] = useState(false);
+  const [showNotifications, setShowNotifications] = useState(false);
   const [filter, setFilter] = useState('All');
   const [flyingBalloons, setFlyingBalloons] = useState<FlyingBalloon[]>([]);
   const [showTeamCode, setShowTeamCode] = useState(false);
@@ -183,6 +187,25 @@ export default function Silver() {
       await leaveTeam(currentTeam.id, user, userProfile);
       if (currentTeamIndex >= teams.length - 1) setCurrentTeamIndex(Math.max(0, currentTeamIndex - 1));
     }
+  };
+
+  // --- Notification Management ---
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const handleNotificationClick = async (_notification: Notification) => {
+    // Navigate to problems view
+    setView('problems');
+    setShowNotifications(false);
+    
+    // Optional: scroll to the problem or highlight it
+    // This could be enhanced by adding a highlightedProblemId state
+  };
+
+  const handleMarkAsRead = async (notificationId: string) => {
+    await markAsRead(notificationId);
+  };
+
+  const handleMarkAllAsRead = async () => {
+    await markAllAsRead();
   };
 
   // --- Derived State ---
@@ -351,26 +374,17 @@ export default function Silver() {
       <div className="max-w-md mx-auto min-h-screen bg-slate-100 relative pb-24 shadow-2xl">
 
         {/* Top App Bar */}
-        <header className="sticky top-0 z-30 bg-white/80 backdrop-blur-md px-6 py-4 flex justify-between items-center border-b border-gray-100">
-          <div>
-            <h1 className="text-2xl font-black tracking-tight text-blue-600 flex items-center gap-2">
-              Sil<span className="text-gray-900 font-bold">ver</span>
-            </h1>
-          </div>
-          <div className="flex gap-3 items-center">
-            {user ? (
-              <UserMenu user={user} onSignOut={handleSignOut} />
-            ) : (
-              <button
-                onClick={() => setIsSignInOpen(true)}
-                className="px-4 py-2 rounded-full bg-blue-500 text-white text-sm font-medium hover:bg-blue-600 transition-colors"
-              >
-                Sign In
-              </button>
-            )}
-            {/* dev button removed */}
-          </div>
-        </header>
+        <Header
+          user={user}
+          currentTeam={currentTeam}
+          teams={teams}
+          currentTeamIndex={currentTeamIndex}
+          onSignOut={handleSignOut}
+          onSignInClick={() => setIsSignInOpen(true)}
+          onTeamSwitch={setCurrentTeamIndex}
+          unreadNotifications={unreadCount}
+          onNotificationsClick={() => setShowNotifications(true)}
+        />
 
         {/* Content Area */}
         <main className="p-4">
@@ -638,6 +652,17 @@ export default function Silver() {
         />
 
         <FlyingBalloons balloons={flyingBalloons} onComplete={handleFlyingBalloonComplete} />
+
+        {/* Notifications Screen */}
+        {showNotifications && (
+          <NotificationsScreen
+            notifications={notifications}
+            onMarkAsRead={handleMarkAsRead}
+            onMarkAllAsRead={handleMarkAllAsRead}
+            onNotificationClick={handleNotificationClick}
+            onBack={() => setShowNotifications(false)}
+          />
+        )}
 
       </div>
     </div>

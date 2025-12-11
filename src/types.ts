@@ -46,3 +46,14 @@ export interface Contest {
   durationSeconds?: number;
   time?: string; // formatted time until start
 }
+
+export interface Notification {
+  id: string;
+  userId: string;           // Who receives the notification
+  problemId: string;        // Related problem
+  problemTitle: string;     // Cached for display
+  assignedBy: string;       // Who assigned the problem
+  assignedByName: string;   // Cached for display
+  isRead: boolean;
+  createdAt: any;
+}

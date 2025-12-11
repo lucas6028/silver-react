@@ -1,13 +1,17 @@
 import { useState, useEffect, useRef } from 'react';
-import { User as UserIcon, LogOut, ChevronDown } from 'lucide-react';
+import { User as UserIcon, LogOut, ChevronDown, Users } from 'lucide-react';
 import type { User } from 'firebase/auth';
+import type { Team } from '../types';
 
 interface UserMenuProps {
   user: User;
   onSignOut: () => void;
+  teams?: Team[];
+  currentTeam?: Team | null;
+  onTeamSwitch?: (index: number) => void;
 }
 
-export const UserMenu = ({ user, onSignOut }: UserMenuProps) => {
+export const UserMenu = ({ user, onSignOut, teams = [], currentTeam, onTeamSwitch }: UserMenuProps) => {
   const [isOpen, setIsOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
@@ -42,16 +46,16 @@ export const UserMenu = ({ user, onSignOut }: UserMenuProps) => {
     <div className="relative" ref={menuRef}>
       <button 
         onClick={() => setIsOpen(!isOpen)}
-        className="flex items-center gap-2 p-1 rounded-full hover:bg-gray-100 transition-colors"
+        className="flex items-center gap-1.5 p-1 pr-2 rounded-full hover:bg-gray-100 transition-colors"
       >
-        <div className="w-9 h-9 rounded-full bg-blue-500 text-white flex items-center justify-center font-bold shadow-blue-200 shadow-md overflow-hidden">
+        <div className="w-11 h-11 rounded-full bg-blue-500 text-white flex items-center justify-center font-bold shadow-sm overflow-hidden border-2 border-white">
           {user.photoURL ? (
             <img src={user.photoURL} alt="Profile" className="w-full h-full object-cover" />
           ) : (
             getInitials()
           )}
         </div>
-        <ChevronDown size={16} className={`text-gray-600 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
+        <ChevronDown size={14} className={`text-gray-600 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
       </button>
 
       {isOpen && (
@@ -77,6 +81,19 @@ export const UserMenu = ({ user, onSignOut }: UserMenuProps) => {
             </div>
           </div>
 
+          {/* Current Team Badge */}
+          {currentTeam && (
+            <div className="px-4 py-3 bg-gradient-to-r from-blue-50 to-indigo-50 border-b border-gray-100">
+              <div className="flex items-center gap-2">
+                <Users size={16} className="text-blue-600" />
+                <div>
+                  <div className="text-xs text-gray-500 font-medium">Current Team</div>
+                  <div className="text-sm font-bold text-gray-900">{currentTeam.name}</div>
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Menu Items */}
           <div className="py-2">
             <button
@@ -89,6 +106,35 @@ export const UserMenu = ({ user, onSignOut }: UserMenuProps) => {
               <UserIcon size={18} />
               <span className="text-sm font-medium">View Profile</span>
             </button>
+
+            {/* Team Switcher in dropdown if multiple teams */}
+            {teams.length > 1 && onTeamSwitch && (
+              <>
+                <div className="px-4 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                  Switch Team
+                </div>
+                {teams.map((team, index) => (
+                  <button
+                    key={team.id}
+                    onClick={() => {
+                      onTeamSwitch(index);
+                      setIsOpen(false);
+                    }}
+                    className={`w-full px-4 py-2.5 flex items-center justify-between hover:bg-gray-50 transition-colors text-left ${
+                      currentTeam?.id === team.id ? 'bg-blue-50' : ''
+                    }`}
+                  >
+                    <span className={`text-sm ${currentTeam?.id === team.id ? 'font-semibold text-blue-600' : 'text-gray-700'}`}>
+                      {team.name}
+                    </span>
+                    {currentTeam?.id === team.id && (
+                      <div className="w-2 h-2 rounded-full bg-blue-600"></div>
+                    )}
+                  </button>
+                ))}
+                <div className="h-px bg-gray-100 my-2"></div>
+              </>
+            )}
             
             <button
               onClick={() => {

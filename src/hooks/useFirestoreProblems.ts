@@ -1,10 +1,13 @@
 import { useEffect, useState } from 'react';
 import { db } from '../lib/firebase';
-import { collection, addDoc, onSnapshot, doc, updateDoc, deleteDoc, serverTimestamp, arrayUnion, arrayRemove, query, where } from 'firebase/firestore';
-import type { Problem } from '../types';
+import { collection, addDoc, onSnapshot, doc, updateDoc, deleteDoc, serverTimestamp, arrayUnion, arrayRemove, query, where, getDoc } from 'firebase/firestore';
+import type { Problem, Notification } from '../types';
 import type { User } from 'firebase/auth';
 
-export const useFirestoreProblems = (user: User | null) => {
+export const useFirestoreProblems = (
+  user: User | null, 
+  onCreateNotification?: (notification: Omit<Notification, 'id' | 'createdAt' | 'isRead'>) => Promise<void>
+) => {
   const [problems, setProblems] = useState<Problem[]>([]);
 
   useEffect(() => {
@@ -112,6 +115,22 @@ export const useFirestoreProblems = (user: User | null) => {
     try {
       if (assign) {
         await updateDoc(doc(db, 'problems', id), { assignees: arrayUnion(uid) });
+        
+        // Create notification only when assigning (not unassigning) and not assigning to self
+        if (user.uid !== uid && onCreateNotification) {
+          // Get problem details for notification
+          const problemDoc = await getDoc(doc(db, 'problems', id));
+          if (problemDoc.exists()) {
+            const problemData = problemDoc.data() as Problem;
+            await onCreateNotification({
+              userId: uid,
+              problemId: id,
+              problemTitle: problemData.title,
+              assignedBy: user.uid,
+              assignedByName: user.displayName || user.email || 'Someone'
+            });
+          }
+        }
       } else {
         await updateDoc(doc(db, 'problems', id), { assignees: arrayRemove(uid) });
       }
