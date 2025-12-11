@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { ExternalLink, Trash2, ChevronDown, UserPlus } from 'lucide-react';
+import { ExternalLink, Trash2, ChevronDown, UserPlus, Edit } from 'lucide-react';
 import { PLATFORMS, BALLOON_COLORS } from '../constants';
 import type { TeamMember } from '../types';
 import { Balloon } from './Balloon';
@@ -9,12 +9,13 @@ interface ProblemCardProps {
   problem: Problem;
   onUpdateStatus: (id: string, status: string) => void;
   onDelete: (id: string) => void;
+  onEdit?: (problem: Problem) => void;
   currentUserId?: string | null;
   onAssignToUser?: (problemId: string, userId: string) => Promise<void> | void;
   members?: TeamMember[] | null;
 }
 
-export const ProblemCard = ({ problem, onUpdateStatus, onDelete, currentUserId, onAssignToUser, members }: ProblemCardProps) => {
+export const ProblemCard = ({ problem, onUpdateStatus, onDelete, onEdit, currentUserId, onAssignToUser, members }: ProblemCardProps) => {
   const [isStatusOpen, setIsStatusOpen] = useState(false);
   const [isAssigneeOpen, setIsAssigneeOpen] = useState(false);
   const statusMenuRef = useRef<HTMLDivElement>(null);
@@ -44,7 +45,7 @@ export const ProblemCard = ({ problem, onUpdateStatus, onDelete, currentUserId, 
   const statusConfig: Record<string, { label: string; color: string; bg: string }> = {
     'Todo': { label: 'New', color: 'text-gray-400', bg: 'bg-gray-100' },
     'InProgress': { label: 'Running', color: 'text-amber-500', bg: 'bg-amber-50' },
-    'Review': { label: 'Testing', color: 'text-blue-500', bg: 'bg-blue-50' },
+    'Review': { label: 'Review', color: 'text-blue-500', bg: 'bg-blue-50' },
     'Done': { label: 'AC', color: 'text-green-600', bg: 'bg-green-100' }
   };
 
@@ -210,6 +211,11 @@ export const ProblemCard = ({ problem, onUpdateStatus, onDelete, currentUserId, 
             <a href={problem.url} target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-blue-500">
               <ExternalLink size={16} />
             </a>
+          )}
+          {canEdit && onEdit && (
+            <button onClick={() => onEdit(problem)} className="text-gray-400 hover:text-blue-500">
+              <Edit size={16} />
+            </button>
           )}
           {canEdit && (
             <button onClick={() => onDelete(problem.id)} className="text-gray-400 hover:text-red-500">

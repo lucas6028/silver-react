@@ -4,7 +4,6 @@ import {
   LayoutDashboard,
   ListTodo,
   Users,
-  Search,
   CheckCircle2,
   Medal,
   Calendar,
@@ -29,6 +28,7 @@ import { ProgressBar } from './components/ProgressBar';
 import { Chip } from './components/Chip';
 import { ProblemCard } from './components/ProblemCard';
 import { AddProblemSheet } from './components/AddProblemSheet';
+import { EditProblemModal } from './components/EditProblemModal';
 import { SignInModal } from './components/SignInModal';
 import { UserMenu } from './components/UserMenu';
 import { FlyingBalloons } from './components/FlyingBalloons';
@@ -40,8 +40,10 @@ export default function Silver() {
   const { teams, createTeam, joinTeam, leaveTeam } = useTeams(user, userProfile);
   const [currentTeamIndex, setCurrentTeamIndex] = useState(0);
   const [view, setView] = useState('problems');
-  const { problems, addProblem, updateStatus: updateProblemStatus, deleteProblem, toggleAssignee, setProblems } = useFirestoreProblems(user);
+  const { problems, addProblem, updateStatus: updateProblemStatus, updateProblem, deleteProblem, toggleAssignee, setProblems } = useFirestoreProblems(user);
   const [isAddOpen, setIsAddOpen] = useState(false);
+  const [isEditOpen, setIsEditOpen] = useState(false);
+  const [editingProblem, setEditingProblem] = useState<Problem | null>(null);
   const [isSignInOpen, setIsSignInOpen] = useState(false);
   const [isTeamModalOpen, setIsTeamModalOpen] = useState(false);
   const [filter, setFilter] = useState('All');
@@ -62,6 +64,16 @@ export default function Silver() {
       ? [...new Set([user.uid, ...problemData.assignees])] // Ensure creator is always included
       : [user.uid];
     await addProblem({ ...problemData, assignees, createdBy: user.uid });
+  };
+
+  const handleUpdateProblem = async (id: string, problemData: Partial<Omit<Problem, 'id'>>) => {
+    if (!user) return;
+    await updateProblem(id, problemData);
+  };
+
+  const handleEditProblem = (problem: Problem) => {
+    setEditingProblem(problem);
+    setIsEditOpen(true);
   };
 
   interface UpdateStatusFn {
@@ -346,9 +358,6 @@ export default function Silver() {
             </h1>
           </div>
           <div className="flex gap-3 items-center">
-            <button className="p-2 rounded-full hover:bg-gray-100 text-gray-600">
-              <Search size={20} />
-            </button>
             {user ? (
               <UserMenu user={user} onSignOut={handleSignOut} />
             ) : (
@@ -382,6 +391,7 @@ export default function Silver() {
                     problem={problem}
                     onUpdateStatus={handleUpdateStatus}
                     onDelete={handleDelete}
+                    onEdit={handleEditProblem}
                     currentUserId={user?.uid}
                     onAssignToUser={handleAssignToUser}
                     members={currentTeam?.members ?? null}
@@ -602,6 +612,16 @@ export default function Silver() {
           currentUserId={user?.uid}
           members={currentTeam?.members ?? null}
         />
+
+        {editingProblem && (
+          <EditProblemModal
+            isOpen={isEditOpen}
+            onClose={() => setIsEditOpen(false)}
+            onUpdate={handleUpdateProblem}
+            problem={editingProblem}
+            members={currentTeam?.members ?? null}
+          />
+        )}
 
         <SignInModal
           isOpen={isSignInOpen}

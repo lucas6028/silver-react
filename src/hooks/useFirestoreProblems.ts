@@ -90,6 +90,17 @@ export const useFirestoreProblems = (user: User | null) => {
     } catch (e) { console.error(e); }
   };
 
+  const updateProblem = async (id: string, updateData: Partial<Omit<Problem, 'id'>>) => {
+    setProblems(prev => prev.map(p => p.id === id ? { ...p, ...updateData } : p));
+
+    if (id.startsWith('local-')) return;
+    if (!user) return;
+
+    try {
+      await updateDoc(doc(db, 'problems', id), updateData);
+    } catch (e) { console.error(e); }
+  };
+
   const toggleAssignee = async (id: string, uid: string, assign: boolean) => {
     // Optimistic UI update
     setProblems(prev => prev.map(p => p.id === id ? { ...p, assignees: assign ? Array.from(new Set([...(p.assignees || []), uid])) : (p.assignees || []).filter(a => a !== uid) } : p));
@@ -111,6 +122,7 @@ export const useFirestoreProblems = (user: User | null) => {
     problems,
     addProblem,
     updateStatus,
+    updateProblem,
     deleteProblem,
     assignToMe,
     toggleAssignee,
