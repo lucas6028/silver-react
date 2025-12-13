@@ -31,6 +31,7 @@ import { ProblemCard } from './components/ProblemCard';
 import { AddProblemSheet } from './components/AddProblemSheet';
 import { EditProblemModal } from './components/EditProblemModal';
 import { SignInModal } from './components/SignInModal';
+import { LoginScreen } from './components/LoginScreen';
 import { FlyingBalloons } from './components/FlyingBalloons';
 import { TeamModal } from './components/TeamModal';
 import { Header } from './components/Header';
@@ -367,6 +368,16 @@ export default function Silver() {
       </div>
     </div>
   );
+
+  // Show login screen if user is not authenticated
+  if (!user) {
+    return (
+      <LoginScreen 
+        onGoogleSignIn={handleGoogleSignIn}
+        onGithubSignIn={handleGithubSignIn}
+      />
+    );
+  }
 
   return (
     <div className="bg-slate-100 min-h-screen text-gray-900 font-sans selection:bg-blue-100">

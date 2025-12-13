@@ -1,1 +1,20 @@
 @import "tailwindcss";
+
+/* Balloon float animations */
+.balloon-float {
+  animation: float 6s ease-in-out infinite;
+}
+
+.balloon-float-delayed {
+  animation: float 7s ease-in-out infinite 1s;
+}
+
+.balloon-float-slow {
+  animation: float 8s ease-in-out infinite 2s;
+}
+
+@keyframes float {
+  0% { transform: translateY(0px) rotate(0deg); }
+  50% { transform: translateY(-20px) rotate(5deg); }
+  100% { transform: translateY(0px) rotate(0deg); }
+}
