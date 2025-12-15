@@ -65,9 +65,8 @@ export const Header = ({
                 </div>
               )} */}
             </div>
-            <h1 className="text-xl font-black tracking-tight flex items-center">
-              <span className="text-blue-600">Si</span>
-              <span className="text-gray-700 dark:text-gray-200">lver</span>
+            <h1 className="text-xl font-extrabold tracking-tight header-title-shimmer">
+              Silver
             </h1>
           </div>
 

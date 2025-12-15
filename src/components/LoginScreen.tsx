@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Github, Trophy } from 'lucide-react';
+import { Github, Code } from 'lucide-react';
 
 interface LoginScreenProps {
   onGoogleSignIn: () => void;
@@ -25,58 +25,59 @@ export const LoginScreen = ({ onGoogleSignIn, onGithubSignIn }: LoginScreenProps
   };
 
   return (
-    <div className="bg-gradient-to-br from-slate-50 via-blue-50 to-violet-50 min-h-screen flex flex-col items-center justify-center relative overflow-hidden font-sans">
+    <div className="bg-slate-900 text-white min-h-screen flex flex-col items-center justify-center relative overflow-hidden font-sans"
+      style={{
+        backgroundImage: 'radial-gradient(#475569 1px, transparent 1px)',
+        backgroundSize: '24px 24px'
+      }}
+    >
       
       {/* Decorative Background Elements (ICPC Balloons) */}
-      <div className="absolute top-[15%] left-[15%] balloon-float opacity-10 pointer-events-none">
-        <div className="text-7xl transform rotate-12">
-          🎈
+      <div className="absolute top-[15%] left-[15%] balloon-float opacity-20 pointer-events-none">
+        <div className="text-8xl transform rotate-12 text-yellow-500" style={{ filter: 'drop-shadow(0 0 10px rgba(234, 179, 8, 0.5))' }}>
+          📍
         </div>
+        <div className="w-0.5 h-24 bg-slate-500 mx-auto -mt-2 opacity-60"></div>
       </div>
 
-      <div className="absolute bottom-[20%] right-[15%] balloon-float-delayed opacity-10 pointer-events-none">
-        <div className="text-8xl transform -rotate-12">
-          🎈
+      <div className="absolute bottom-[20%] right-[15%] balloon-float-delayed opacity-20 pointer-events-none">
+        <div className="text-9xl transform -rotate-12 text-blue-500" style={{ filter: 'drop-shadow(0 0 10px rgba(59, 130, 246, 0.5))' }}>
+          📍
         </div>
+        <div className="w-0.5 h-32 bg-slate-500 mx-auto -mt-2 opacity-60"></div>
       </div>
 
       <div className="absolute top-[25%] right-[25%] balloon-float-slow opacity-10 pointer-events-none">
-        <div className="text-6xl transform rotate-6">
-          🎈
+        <div className="text-6xl transform rotate-6 text-red-500" style={{ filter: 'drop-shadow(0 0 10px rgba(239, 68, 68, 0.5))' }}>
+          📍
         </div>
+        <div className="w-0.5 h-16 bg-slate-500 mx-auto -mt-1 opacity-60"></div>
       </div>
-
-      {/* Subtle geometric pattern */}
-      <div className="absolute inset-0 opacity-5 pointer-events-none" style={{
-        backgroundImage: 'radial-gradient(circle, #3b82f6 1px, transparent 1px)',
-        backgroundSize: '30px 30px'
-      }}></div>
 
       {/* Main Container */}
       <div className="z-10 w-full max-w-md px-6">
         
         {/* Logo Area */}
         <div className="flex flex-col items-center mb-10">
-          <div className="w-20 h-20 bg-gradient-to-br from-blue-500 to-violet-600 rounded-3xl flex items-center justify-center shadow-xl mb-4 transform hover:scale-105 transition-transform duration-300">
-            <Trophy className="text-white" size={40} strokeWidth={2.5} />
+          <div className="w-16 h-16 bg-gradient-to-br from-slate-200 to-slate-400 rounded-2xl flex items-center justify-center shadow-lg mb-4 rotate-3 hover:rotate-0 transition-transform duration-500 border border-slate-300">
+            <Code className="text-slate-800" size={32} strokeWidth={2.5} />
           </div>
-          <h1 className="text-6xl font-extrabold tracking-tight bg-gradient-to-r from-blue-600 via-violet-600 to-blue-600 bg-clip-text text-transparent mb-2">Silver</h1>
-          <p className="text-gray-500 text-sm font-medium tracking-wide text-center">
-            Competitive Programming Team Collaboration
+          <h1 className="text-6xl font-extrabold tracking-tight mb-2 shimmer-text">Silver</h1>
+          <p className="text-slate-400 text-sm font-medium tracking-wide uppercase text-center">
+            Competitive Programming<br/>Team Collaboration
           </p>
         </div>
 
         {/* Login Card */}
-        <div className="bg-white rounded-3xl p-8 shadow-xl border border-gray-100">
-          <h2 className="text-2xl font-bold text-center mb-2 text-gray-900">Welcome Back</h2>
-          <p className="text-center text-gray-500 text-sm mb-6">Sign in to continue your journey</p>
+        <div className="bg-slate-800/70 backdrop-blur-xl border border-slate-700/50 rounded-2xl p-8 shadow-2xl">
+          <h2 className="text-xl font-semibold text-center mb-6 text-slate-200">Welcome Back</h2>
           
-          <div className="space-y-3">
+          <div className="space-y-4">
             {/* Google Button */}
             <button 
               onClick={() => handleLogin('google')}
               disabled={loadingProvider !== null}
-              className="w-full bg-white hover:bg-gray-50 text-gray-700 font-semibold py-3.5 px-4 rounded-xl transition-all duration-200 flex items-center justify-center gap-3 shadow-sm border border-gray-200 hover:border-gray-300 hover:shadow-md disabled:opacity-60 disabled:cursor-not-allowed"
+              className="group relative w-full bg-white hover:bg-slate-100 text-slate-800 font-bold py-3 px-4 rounded-xl transition-all duration-200 flex items-center justify-center gap-3 shadow-md hover:shadow-lg hover:-translate-y-0.5 focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-900 focus:ring-white outline-none disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:translate-y-0"
             >
               {loadingProvider === 'google' ? (
                 <>
@@ -92,6 +93,9 @@ export const LoginScreen = ({ onGoogleSignIn, onGithubSignIn }: LoginScreenProps
                     <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
                   </svg>
                   <span>Continue with Google</span>
+                  <div className="absolute right-4 opacity-0 group-hover:opacity-100 transition-opacity text-slate-400">
+                    →
+                  </div>
                 </>
               )}
             </button>
@@ -100,7 +104,7 @@ export const LoginScreen = ({ onGoogleSignIn, onGithubSignIn }: LoginScreenProps
             <button 
               onClick={() => handleLogin('github')}
               disabled={loadingProvider !== null}
-              className="w-full bg-[#24292F] hover:bg-[#2b3137] text-white font-semibold py-3.5 px-4 rounded-xl transition-all duration-200 flex items-center justify-center gap-3 shadow-sm hover:shadow-md disabled:opacity-60 disabled:cursor-not-allowed"
+              className="group relative w-full bg-[#24292F] hover:bg-[#2b3137] text-white font-bold py-3 px-4 rounded-xl transition-all duration-200 flex items-center justify-center gap-3 shadow-md hover:shadow-lg hover:-translate-y-0.5 focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-900 focus:ring-gray-500 outline-none border border-slate-600 disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:translate-y-0"
             >
               {loadingProvider === 'github' ? (
                 <>
@@ -111,43 +115,44 @@ export const LoginScreen = ({ onGoogleSignIn, onGithubSignIn }: LoginScreenProps
                 <>
                   <Github size={20} />
                   <span>Continue with GitHub</span>
+                  <div className="absolute right-4 opacity-0 group-hover:opacity-100 transition-opacity text-slate-500">
+                    →
+                  </div>
                 </>
               )}
             </button>
           </div>
 
-          <div className="mt-6 flex items-center justify-center gap-3">
-            <div className="h-px bg-gray-200 flex-1"></div>
-            <span className="text-gray-400 text-xs font-medium">Secure Sign In</span>
-            <div className="h-px bg-gray-200 flex-1"></div>
+          <div className="mt-8 flex items-center justify-center gap-2">
+            <div className="h-px bg-slate-700 w-12"></div>
+            <span className="text-slate-500 text-xs uppercase tracking-wider">Secure Access</span>
+            <div className="h-px bg-slate-700 w-12"></div>
           </div>
         </div>
 
         {/* Footer */}
-        <div className="mt-6 text-center">
-          <p className="text-gray-500 text-xs">
-            By signing in, you agree to our{' '}
-            <a href="#" className="text-blue-600 hover:text-blue-700 font-medium transition-colors">Terms</a>
+        <div className="mt-8 text-center">
+          <p className="text-slate-500 text-xs">
+            By logging in, you agree to Silver's{' '}
+            <a href="#" className="text-slate-400 hover:text-white underline decoration-slate-600 hover:decoration-white transition-colors">Terms</a>
             {' '}and{' '}
-            <a href="#" className="text-blue-600 hover:text-blue-700 font-medium transition-colors">Privacy Policy</a>
+            <a href="#" className="text-slate-400 hover:text-white underline decoration-slate-600 hover:decoration-white transition-colors">Privacy Policy</a>
           </p>
         </div>
       </div>
       
-      {/* Features showcase */}
-      <div className="absolute bottom-6 left-0 right-0 flex justify-center gap-8 text-xs text-gray-400 pointer-events-none hidden md:flex">
-        <div className="flex items-center gap-2">
-          <div className="w-1.5 h-1.5 rounded-full bg-blue-400"></div>
-          <span>Team Collaboration</span>
-        </div>
-        <div className="flex items-center gap-2">
-          <div className="w-1.5 h-1.5 rounded-full bg-violet-400"></div>
-          <span>Problem Tracking</span>
-        </div>
-        <div className="flex items-center gap-2">
-          <div className="w-1.5 h-1.5 rounded-full bg-blue-400"></div>
-          <span>Contest Ready</span>
-        </div>
+      {/* Code decoration in background */}
+      <div className="absolute bottom-4 left-6 text-slate-700 font-mono text-xs opacity-50 select-none pointer-events-none hidden md:block">
+        <pre>{`#include <bits/stdc++.h>
+using namespace std;
+
+int main() {
+    ios::sync_with_stdio(0);
+    cin.tie(0);
+    // Silver: Collaborative CP
+    solve();
+    return 0;
+}`}</pre>
       </div>
     </div>
   );
