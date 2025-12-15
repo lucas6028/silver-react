@@ -14,6 +14,8 @@ interface HeaderProps {
   onTeamSwitch: (index: number) => void;
   unreadNotifications?: number;
   onNotificationsClick?: () => void;
+  theme?: 'light' | 'dark';
+  onToggleTheme?: () => void;
 }
 
 export const Header = ({ 
@@ -25,7 +27,9 @@ export const Header = ({
   onSignInClick,
   onTeamSwitch,
   unreadNotifications = 0,
-  onNotificationsClick
+  onNotificationsClick,
+  theme,
+  onToggleTheme
 }: HeaderProps) => {
   const [showTeamSwitcher, setShowTeamSwitcher] = useState(false);
 
@@ -43,7 +47,7 @@ export const Header = ({
   const tier = getTeamTier();
 
   return (
-    <header className="sticky top-0 z-30 bg-white shadow-sm">
+    <header className="sticky top-0 z-30 bg-white dark:bg-slate-900 shadow-sm dark:shadow-slate-800/50">
       <div className="px-4 py-3 flex items-center justify-between gap-3">
         {/* Left: Logo + Team Context */}
         <div className="flex items-center gap-3 flex-1 min-w-0">
@@ -63,7 +67,7 @@ export const Header = ({
             </div>
             <h1 className="text-xl font-black tracking-tight flex items-center">
               <span className="text-blue-600">Si</span>
-              <span className="text-gray-700">lver</span>
+              <span className="text-gray-700 dark:text-gray-200">lver</span>
             </h1>
           </div>
 
@@ -71,10 +75,10 @@ export const Header = ({
           {user && currentTeam && (
             <button
               onClick={() => setShowTeamSwitcher(!showTeamSwitcher)}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-gray-50 hover:bg-gray-100 transition-colors border border-gray-200 min-w-0 max-w-[160px]"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-gray-50 dark:bg-slate-800 hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors border border-gray-200 dark:border-slate-700 min-w-0 max-w-[160px]"
             >
               <div className="flex items-center gap-1.5 min-w-0">
-                <span className="text-xs font-semibold text-gray-700 truncate">
+                <span className="text-xs font-semibold text-gray-700 dark:text-gray-200 truncate">
                   {currentTeam.name}
                 </span>
                 {tier && (
@@ -91,8 +95,8 @@ export const Header = ({
 
           {/* Team Switcher Dropdown */}
           {showTeamSwitcher && teams.length > 1 && (
-            <div className="absolute top-14 left-4 bg-white rounded-xl shadow-xl border border-gray-200 py-2 min-w-[200px] z-50 animate-in slide-in-from-top-2 duration-200">
-              <div className="px-3 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wider border-b border-gray-100">
+            <div className="absolute top-14 left-4 bg-white dark:bg-slate-800 rounded-xl shadow-xl border border-gray-200 dark:border-slate-700 py-2 min-w-[200px] z-50 animate-in slide-in-from-top-2 duration-200">
+              <div className="px-3 py-2 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider border-b border-gray-100 dark:border-slate-700">
                 Switch Team
               </div>
               {teams.map((team, index) => (
@@ -102,15 +106,15 @@ export const Header = ({
                     onTeamSwitch(index);
                     setShowTeamSwitcher(false);
                   }}
-                  className={`w-full px-3 py-2.5 flex items-center justify-between hover:bg-gray-50 transition-colors ${
-                    index === currentTeamIndex ? 'bg-blue-50' : ''
+                  className={`w-full px-3 py-2.5 flex items-center justify-between hover:bg-gray-50 dark:hover:bg-slate-700 transition-colors ${
+                    index === currentTeamIndex ? 'bg-blue-50 dark:bg-slate-700' : ''
                   }`}
                 >
-                  <span className={`text-sm font-medium ${index === currentTeamIndex ? 'text-blue-600' : 'text-gray-700'}`}>
+                  <span className={`text-sm font-medium ${index === currentTeamIndex ? 'text-blue-600 dark:text-blue-400' : 'text-gray-700 dark:text-gray-200'}`}>
                     {team.name}
                   </span>
                   {index === currentTeamIndex && (
-                    <div className="w-2 h-2 rounded-full bg-blue-600"></div>
+                    <div className="w-2 h-2 rounded-full bg-blue-600 dark:bg-blue-400"></div>
                   )}
                 </button>
               ))}
@@ -125,10 +129,10 @@ export const Header = ({
               {/* Notifications Bell */}
               <button 
                 onClick={onNotificationsClick}
-                className="relative w-11 h-11 flex items-center justify-center rounded-full hover:bg-gray-100 transition-colors"
+                className="relative w-11 h-11 flex items-center justify-center rounded-full hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors"
                 aria-label="Notifications"
               >
-                <Bell size={20} className="text-gray-600" />
+                <Bell size={20} className="text-gray-600 dark:text-gray-300" />
                 {unreadNotifications > 0 && (
                   <span className="absolute top-1.5 right-1.5 w-4 h-4 bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center">
                     {unreadNotifications > 9 ? '9+' : unreadNotifications}
@@ -143,6 +147,8 @@ export const Header = ({
                 teams={teams}
                 currentTeam={currentTeam}
                 onTeamSwitch={onTeamSwitch}
+                theme={theme}
+                onToggleTheme={onToggleTheme}
               />
             </>
           )}

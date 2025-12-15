@@ -15,6 +15,7 @@ import { useAuthProfile } from './hooks/useAuthProfile';
 import { useFirestoreProblems } from './hooks/useFirestoreProblems';
 import { useTeams } from './hooks/useTeams';
 import { useNotifications } from './hooks/useNotifications';
+import { useTheme } from './hooks/useTheme';
 import { chooseColorForProblem } from './lib/utils';
 
 import {
@@ -42,6 +43,7 @@ export default function Silver() {
   const { user, userProfile, signInWithGoogle, signInWithGithub, signOutUser } = useAuthProfile();
   const { teams, createTeam, joinTeam, leaveTeam } = useTeams(user, userProfile);
   const { notifications, unreadCount, createNotification, markAsRead, markAllAsRead } = useNotifications(user);
+  const { theme, toggleTheme } = useTheme();
   const [currentTeamIndex, setCurrentTeamIndex] = useState(0);
   const [view, setView] = useState('problems');
   const { problems, addProblem, updateStatus: updateProblemStatus, updateProblem, deleteProblem, toggleAssignee, setProblems } = useFirestoreProblems(user, createNotification);
@@ -290,26 +292,26 @@ export default function Silver() {
 
       {/* Stats Row */}
       <div className="grid grid-cols-2 gap-4">
-        <div className="bg-white rounded-2xl p-4 border border-gray-100 shadow-sm relative overflow-hidden">
+        <div className="bg-white dark:bg-slate-800 rounded-2xl p-4 border border-gray-100 dark:border-slate-700 shadow-sm relative overflow-hidden">
           <div className="flex items-center gap-2 mb-2 text-blue-500 relative z-10">
             <CheckCircle2 size={18} />
-            <span className="text-xs font-medium uppercase tracking-wider text-gray-500">Accepted</span>
+            <span className="text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">Accepted</span>
           </div>
           <div className="relative z-10">
-            <div className="text-3xl font-bold text-gray-900">{stats.completed}</div>
+            <div className="text-3xl font-bold text-gray-900 dark:text-gray-100">{stats.completed}</div>
             <div className="text-xs text-gray-400 mt-1">Problems Solved</div>
           </div>
           {/* Decorative accent */}
-          <div className="absolute -right-4 -bottom-4 w-24 h-24 bg-blue-100 rounded-full opacity-30"></div>
+          <div className="absolute -right-4 -bottom-4 w-24 h-24 bg-blue-100 dark:bg-blue-900/30 rounded-full opacity-30"></div>
         </div>
 
-        <div className="bg-white rounded-2xl p-4 border border-gray-100 shadow-sm relative overflow-hidden">
+        <div className="bg-white dark:bg-slate-800 rounded-2xl p-4 border border-gray-100 dark:border-slate-700 shadow-sm relative overflow-hidden">
           <div className="flex items-center gap-2 mb-2 text-amber-500 relative z-10">
             <Medal size={18} />
-            <span className="text-xs font-medium uppercase tracking-wider text-gray-500">Balloons</span>
+            <span className="text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">Balloons</span>
           </div>
           <div className="relative z-10">
-            <div className="text-3xl font-bold text-gray-900">{stats.completed}</div>
+            <div className="text-3xl font-bold text-gray-900 dark:text-gray-100">{stats.completed}</div>
             <div className="text-xs text-gray-400 mt-1">Collected</div>
           </div>
           {/* Decorative Balloons */}
@@ -322,12 +324,12 @@ export default function Silver() {
 
       {/* Balloon Collection Shelf */}
       {stats.completed > 0 && (
-        <div className="bg-gradient-to-br from-cyan-50/50 to-white rounded-2xl p-5 border border-cyan-100 shadow-sm">
+        <div className="bg-gradient-to-br from-cyan-50/50 dark:from-cyan-900/20 to-white dark:to-slate-800 rounded-2xl p-5 border border-cyan-100 dark:border-cyan-800/50 shadow-sm">
           <div className="flex justify-between items-center mb-4">
-            <h3 className="font-bold text-gray-900 flex items-center gap-2">
+            <h3 className="font-bold text-gray-900 dark:text-gray-100 flex items-center gap-2">
               My Collection
             </h3>
-            <button className="text-xs text-blue-600 hover:text-blue-700 font-medium transition-colors">
+            <button className="text-xs text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 font-medium transition-colors">
               View All
             </button>
           </div>
@@ -343,8 +345,8 @@ export default function Silver() {
       )}
 
       {/* Topic Distribution */}
-      <div className="bg-gradient-to-br from-violet-50/50 to-white rounded-2xl p-5 border border-violet-100 shadow-sm">
-        <h3 className="font-bold text-gray-900 mb-4 flex items-center gap-2">
+      <div className="bg-gradient-to-br from-violet-50/50 dark:from-violet-900/20 to-white dark:to-slate-800 rounded-2xl p-5 border border-violet-100 dark:border-violet-800/50 shadow-sm">
+        <h3 className="font-bold text-gray-900 dark:text-gray-100 mb-4 flex items-center gap-2">
           <BarChart3 size={20} className="text-blue-500" />
           Topic Coverage
         </h3>
@@ -355,8 +357,8 @@ export default function Silver() {
             .map(([tag, count]) => (
               <div key={tag}>
                 <div className="flex justify-between text-xs mb-1">
-                  <span className="font-medium text-gray-700">{tag}</span>
-                  <span className="text-gray-500">{count} AC</span>
+                  <span className="font-medium text-gray-700 dark:text-gray-300">{tag}</span>
+                  <span className="text-gray-500 dark:text-gray-400">{count} AC</span>
                 </div>
                 <ProgressBar progress={(count / stats.total) * 100} color={
                   tag === 'DP' ? 'bg-purple-500' :
@@ -380,9 +382,9 @@ export default function Silver() {
   }
 
   return (
-    <div className="bg-slate-100 min-h-screen text-gray-900 font-sans selection:bg-blue-100">
+    <div className="bg-slate-100 dark:bg-slate-950 min-h-screen text-gray-900 dark:text-gray-100 font-sans selection:bg-blue-100 dark:selection:bg-blue-900">
       {/* Mobile Wrapper */}
-      <div className="max-w-md mx-auto min-h-screen bg-slate-100 relative pb-24 shadow-2xl">
+      <div className="max-w-md mx-auto min-h-screen bg-slate-100 dark:bg-slate-900 relative pb-24 shadow-2xl">
 
         {/* Top App Bar */}
         <Header
@@ -395,6 +397,8 @@ export default function Silver() {
           onTeamSwitch={setCurrentTeamIndex}
           unreadNotifications={unreadCount}
           onNotificationsClick={() => setShowNotifications(true)}
+          theme={theme}
+          onToggleTheme={toggleTheme}
         />
 
         {/* Content Area */}
@@ -424,7 +428,7 @@ export default function Silver() {
                 ))}
 
                 {filteredProblems.length === 0 && (
-                  <div className="flex flex-col items-center justify-center py-20 text-gray-400">
+                  <div className="flex flex-col items-center justify-center py-20 text-gray-400 dark:text-gray-500">
                     <ListTodo size={48} strokeWidth={1} className="mb-4 opacity-50" />
                     <p>No problems found</p>
                   </div>
@@ -438,12 +442,12 @@ export default function Silver() {
               {teams.length === 0 ? (
                 // No team - show create/join options
                 <div className="space-y-4">
-                  <div className="bg-white rounded-2xl p-6 text-center">
-                    <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                      <Users size={32} className="text-blue-600" />
+                  <div className="bg-white dark:bg-slate-800 rounded-2xl p-6 text-center">
+                    <div className="w-16 h-16 bg-blue-100 dark:bg-blue-900/50 rounded-full flex items-center justify-center mx-auto mb-4">
+                      <Users size={32} className="text-blue-600 dark:text-blue-400" />
                     </div>
-                    <h3 className="text-lg font-bold text-gray-900 mb-2">No Team Yet</h3>
-                    <p className="text-sm text-gray-500 mb-6">
+                    <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-2">No Team Yet</h3>
+                    <p className="text-sm text-gray-500 dark:text-gray-400 mb-6">
                       Create a team or join an existing one to collaborate with others
                     </p>
                     <button
@@ -462,18 +466,18 @@ export default function Silver() {
                   onTouchEnd={handleTouchEnd}
                   className="space-y-6"
                 >
-                  <div className="bg-blue-50 rounded-2xl p-5 shadow-sm border border-violet-100">
+                  <div className="bg-blue-50 dark:bg-slate-800 rounded-2xl p-5 shadow-sm border border-violet-100 dark:border-slate-700">
                     <div className="flex justify-between items-start mb-4">
                       <div className="flex-1">
                         <div className="flex items-center gap-2 mb-1">
-                          <h2 className="text-2xl font-bold text-gray-900">{currentTeam?.name}</h2>
+                          <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100">{currentTeam?.name}</h2>
                           {teams.length > 1 && (
-                            <span className="text-xs text-gray-500 bg-white px-2 py-0.5 rounded-full">
+                            <span className="text-xs text-gray-500 dark:text-gray-400 bg-white dark:bg-slate-700 px-2 py-0.5 rounded-full">
                               {currentTeamIndex + 1}/{teams.length}
                             </span>
                           )}
                         </div>
-                        <div className="flex items-center gap-2 text-gray-600">
+                        <div className="flex items-center gap-2 text-gray-600 dark:text-gray-400">
                           <Users size={14} />
                           <span className="text-sm">{currentTeam?.members.length} member{currentTeam?.members.length !== 1 ? 's' : ''}</span>
                         </div>
@@ -481,22 +485,22 @@ export default function Silver() {
                       <div className="flex gap-2">
                         <button
                           onClick={() => setShowTeamCode(!showTeamCode)}
-                          className="text-xs bg-violet-100 hover:bg-violet-200 text-violet-800 px-3 py-1.5 rounded-lg transition-colors"
+                          className="text-xs bg-violet-100 dark:bg-violet-900/50 hover:bg-violet-200 dark:hover:bg-violet-800/50 text-violet-800 dark:text-violet-300 px-3 py-1.5 rounded-lg transition-colors"
                         >
                           {showTeamCode ? 'Hide Code' : 'Show Code'}
                         </button>
                         <button
                           onClick={handleLeaveTeam}
-                          className="text-xs bg-violet-100 hover:bg-violet-200 text-violet-800 px-3 py-1.5 rounded-lg transition-colors"
+                          className="text-xs bg-violet-100 dark:bg-violet-900/50 hover:bg-violet-200 dark:hover:bg-violet-800/50 text-violet-800 dark:text-violet-300 px-3 py-1.5 rounded-lg transition-colors"
                         >
                           Leave
                         </button>
                       </div>
                     </div>
                     {showTeamCode && (
-                      <div className="bg-white rounded-lg p-2.5 border border-violet-200">
-                        <div className="text-[10px] text-gray-500 mb-0.5">Team Code</div>
-                        <div className="font-mono text-sm font-medium tracking-wide text-gray-900">{currentTeam?.code}</div>
+                      <div className="bg-white dark:bg-slate-700 rounded-lg p-2.5 border border-violet-200 dark:border-slate-600">
+                        <div className="text-[10px] text-gray-500 dark:text-gray-400 mb-0.5">Team Code</div>
+                        <div className="font-mono text-sm font-medium tracking-wide text-gray-900 dark:text-gray-100">{currentTeam?.code}</div>
                       </div>
                     )}
                     {teams.length > 1 && (
@@ -510,7 +514,7 @@ export default function Silver() {
                             }}
                             className={`h-1.5 rounded-full transition-all ${idx === currentTeamIndex
                               ? 'w-6 bg-violet-600'
-                              : 'w-1.5 bg-violet-300 hover:bg-violet-400'
+                              : 'w-1.5 bg-violet-300 dark:bg-violet-700 hover:bg-violet-400 dark:hover:bg-violet-600'
                               }`}
                           />
                         ))}
@@ -518,15 +522,15 @@ export default function Silver() {
                     )}
                   </div>
 
-                  <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-                    <div className="p-4 bg-gray-50 border-b border-gray-100 flex justify-between items-center">
-                      <h3 className="font-bold text-gray-900 flex items-center gap-2">
+                  <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-gray-100 dark:border-slate-700 overflow-hidden">
+                    <div className="p-4 bg-gray-50 dark:bg-slate-700 border-b border-gray-100 dark:border-slate-600 flex justify-between items-center">
+                      <h3 className="font-bold text-gray-900 dark:text-gray-100 flex items-center gap-2">
                         <Trophy size={18} className="text-amber-500" />
                         Team Members
                       </h3>
                     </div>
 
-                    <div className="divide-y divide-gray-50">
+                    <div className="divide-y divide-gray-50 dark:divide-slate-700">
                       {currentTeam?.members.map((member) => {
                         const memberProblems = problems.filter(p => p.assignees?.includes(member.uid));
                         const solved = memberProblems.filter(p => p.status === 'Done').length;
@@ -543,21 +547,21 @@ export default function Silver() {
                                 )}
                               </div>
                               <div>
-                                <div className="font-bold text-sm text-gray-900 flex items-center gap-2">
+                                <div className="font-bold text-sm text-gray-900 dark:text-gray-100 flex items-center gap-2">
                                   {member.displayName}
                                   {member.uid === user?.uid && (
-                                    <span className="text-[9px] bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded">You</span>
+                                    <span className="text-[9px] bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300 px-1.5 py-0.5 rounded">You</span>
                                   )}
                                 </div>
-                                <div className="text-[10px] text-gray-400">{member.role || 'Member'}</div>
+                                <div className="text-[10px] text-gray-400 dark:text-gray-500">{member.role || 'Member'}</div>
                               </div>
                             </div>
 
                             <div className="text-right">
-                              <div className="font-bold text-blue-600 text-sm">
-                                {solved}/{total} <span className="text-[10px] text-gray-400 font-normal">AC</span>
+                              <div className="font-bold text-blue-600 dark:text-blue-400 text-sm">
+                                {solved}/{total} <span className="text-[10px] text-gray-400 dark:text-gray-500 font-normal">AC</span>
                               </div>
-                              <div className="text-[10px] text-gray-400">
+                              <div className="text-[10px] text-gray-400 dark:text-gray-500">
                                 {total > 0 ? Math.round((solved / total) * 100) : 0}%
                               </div>
                             </div>
@@ -567,13 +571,13 @@ export default function Silver() {
                     </div>
                   </div>
 
-                  <div className="bg-blue-50 border border-blue-100 rounded-2xl p-4">
-                    <h4 className="font-bold text-blue-900 text-sm mb-2">Team Statistics</h4>
-                    <div className="flex justify-between text-xs text-blue-800 mb-1">
+                  <div className="bg-blue-50 dark:bg-blue-900/30 border border-blue-100 dark:border-blue-800/50 rounded-2xl p-4">
+                    <h4 className="font-bold text-blue-900 dark:text-blue-200 text-sm mb-2">Team Statistics</h4>
+                    <div className="flex justify-between text-xs text-blue-800 dark:text-blue-300 mb-1">
                       <span>Total Problems</span>
                       <span className="font-mono font-bold">{problems.length}</span>
                     </div>
-                    <div className="flex justify-between text-xs text-blue-800">
+                    <div className="flex justify-between text-xs text-blue-800 dark:text-blue-300">
                       <span>Solved</span>
                       <span className="font-mono font-bold">{problems.filter(p => p.status === 'Done').length}</span>
                     </div>
@@ -581,7 +585,7 @@ export default function Silver() {
 
                   <button
                     onClick={() => setIsTeamModalOpen(true)}
-                    className="w-full bg-white border border-gray-200 text-gray-700 py-3 rounded-xl font-medium hover:bg-gray-50 hover:shadow-md hover:border-gray-300 active:scale-[0.98] transition-all duration-200 flex items-center justify-center gap-2 shadow-sm"
+                    className="w-full bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 text-gray-700 dark:text-gray-300 py-3 rounded-xl font-medium hover:bg-gray-50 dark:hover:bg-slate-700 hover:shadow-md hover:border-gray-300 dark:hover:border-slate-600 active:scale-[0.98] transition-all duration-200 flex items-center justify-center gap-2 shadow-sm"
                   >
                     <Plus size={18} />
                     Join Another Team
@@ -603,25 +607,25 @@ export default function Silver() {
         )}
 
         {/* Bottom Navigation */}
-        <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-100 px-6 py-2 pb-6 z-40 max-w-md mx-auto">
+        <nav className="fixed bottom-0 left-0 right-0 bg-white dark:bg-slate-900 border-t border-gray-100 dark:border-slate-800 px-6 py-2 pb-6 z-40 max-w-md mx-auto">
           <div className="flex justify-around items-center">
             <button
               onClick={() => setView('dashboard')}
-              className={`flex flex-col items-center gap-1 p-2 rounded-xl transition-colors ${view === 'dashboard' ? 'text-blue-600' : 'text-gray-400 hover:text-gray-600'}`}
+              className={`flex flex-col items-center gap-1 p-2 rounded-xl transition-colors ${view === 'dashboard' ? 'text-blue-600' : 'text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-400'}`}
             >
               <LayoutDashboard size={24} strokeWidth={view === 'dashboard' ? 2.5 : 2} />
               <span className="text-[10px] font-medium">Home</span>
             </button>
             <button
               onClick={() => setView('problems')}
-              className={`flex flex-col items-center gap-1 p-2 rounded-xl transition-colors ${view === 'problems' ? 'text-blue-600' : 'text-gray-400 hover:text-gray-600'}`}
+              className={`flex flex-col items-center gap-1 p-2 rounded-xl transition-colors ${view === 'problems' ? 'text-blue-600' : 'text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-400'}`}
             >
               <ListTodo size={24} strokeWidth={view === 'problems' ? 2.5 : 2} />
               <span className="text-[10px] font-medium">Problems</span>
             </button>
             <button
               onClick={() => setView('team')}
-              className={`flex flex-col items-center gap-1 p-2 rounded-xl transition-colors ${view === 'team' ? 'text-blue-600' : 'text-gray-400 hover:text-gray-600'}`}
+              className={`flex flex-col items-center gap-1 p-2 rounded-xl transition-colors ${view === 'team' ? 'text-blue-600' : 'text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-400'}`}
             >
               <Users size={24} strokeWidth={view === 'team' ? 2.5 : 2} />
               <span className="text-[10px] font-medium">Team</span>
